@@ -83,10 +83,16 @@ export function SessionModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 flex-col gap-2 border-b border-neutral-800 px-4 py-4 light:border-neutral-200 sm:px-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs uppercase tracking-wide text-neutral-500">{weekdayLabel(date)}</p>
-              <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
+              <p className="text-xs uppercase tracking-wide text-neutral-500">
+                {unit ? `${weekdayLabel(date)} · ${formatDayMonth(date)}` : weekdayLabel(date)}
+              </p>
+              {unit ? (
+                <p className={`text-2xl font-bold leading-tight ${colors!.text}`}>{unit.name}</p>
+              ) : (
+                <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -99,9 +105,6 @@ export function SessionModal({
 
           {unit && (
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${colors!.bg} ${colors!.text}`}>
-                {unit.name}
-              </span>
               <button
                 onClick={() => onViewHistory(unit.id)}
                 className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
