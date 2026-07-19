@@ -25,7 +25,8 @@ export function DayContextMenu({ x, y, onDelete, onClose }: DayContextMenuProps)
     };
   }, [onClose]);
 
-  const left = Math.min(x, window.innerWidth - 160);
+  const menuWidth = 160;
+  const left = Math.max(8, Math.min(x - menuWidth, window.innerWidth - menuWidth - 8));
   const top = Math.min(y, window.innerHeight - 60);
 
   return (

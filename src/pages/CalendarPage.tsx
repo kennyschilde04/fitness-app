@@ -86,7 +86,7 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
+    <div className="flex h-[100svh] flex-col overflow-hidden bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
       <Header />
 
       <main className={`mx-auto flex w-full min-h-0 flex-1 flex-col ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
