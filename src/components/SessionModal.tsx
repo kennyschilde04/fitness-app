@@ -123,7 +123,7 @@ export function SessionModal({
           </div>
 
           {session && session.exercises.length > 1 && (
-            <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               {session.exercises.map((exercise) => (
                 <button
                   key={exercise.exerciseId}
