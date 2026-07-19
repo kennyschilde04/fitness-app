@@ -25,13 +25,15 @@ export function MonthCalendar({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="mb-3 flex shrink-0 items-center justify-between">
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <button
           onClick={() => onMonthStartChange(addMonths(monthStart, -1))}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 leading-none transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
           aria-label="Vorheriger Monat"
         >
-          <span className="-mt-0.5">←</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M15.75 19.5 8.25 12l7.5-7.5" />
+          </svg>
         </button>
 
         <span className="text-lg font-semibold text-neutral-100 light:text-neutral-900">
@@ -40,10 +42,12 @@ export function MonthCalendar({
 
         <button
           onClick={() => onMonthStartChange(addMonths(monthStart, 1))}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 leading-none transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
           aria-label="Nächster Monat"
         >
-          <span className="-mt-0.5">→</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
         </button>
       </div>
 

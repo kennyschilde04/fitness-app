@@ -25,7 +25,7 @@ export function DayCell({ date, unit, onClick, onLongPress }: DayCellProps) {
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`flex h-full min-h-16 flex-col items-center gap-2 rounded-xl border p-3 text-left transition-all duration-150 active:scale-95
+      className={`flex h-full min-h-14 flex-col items-center gap-1.5 rounded-xl border p-2.5 text-left transition-all duration-150 active:scale-95
         ${colors ? `${colors.bg} ${colors.border}` : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 light:bg-white light:hover:border-neutral-300'}
       `}
     >

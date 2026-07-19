@@ -25,7 +25,7 @@ export function Header({ backLabel, title }: HeaderProps) {
   }, [menuOpen]);
 
   return (
-    <header className="mx-auto mb-6 flex w-full max-w-5xl items-center gap-3 sm:mb-8">
+    <header className="mx-auto mb-3 flex w-full max-w-5xl items-center gap-3 sm:mb-4">
       {backLabel ? (
         <button
           onClick={() => navigate(-1)}

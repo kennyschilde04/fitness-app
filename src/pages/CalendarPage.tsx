@@ -138,7 +138,7 @@ export function CalendarPage() {
         </div>
       </main>
 
-      <footer className="mx-auto w-full shrink-0 max-w-5xl border-t border-neutral-900 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center light:border-neutral-200">
+      <footer className="mx-auto w-full shrink-0 max-w-5xl border-t border-neutral-900 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-center light:border-neutral-200">
         <p className="text-xs text-neutral-700 light:text-neutral-400">Gym Tracker · lokal auf deinem Gerät gespeichert</p>
       </footer>
 
