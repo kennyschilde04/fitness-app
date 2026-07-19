@@ -41,13 +41,13 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 px-4 py-8 sm:px-8">
-      <header className="mx-auto mb-8 max-w-5xl">
-        <h1 className="text-2xl font-bold text-neutral-100">🏋️ Gym Tracker</h1>
-        <p className="text-sm text-neutral-500">Deine Trainingseinheiten im Wochenüberblick</p>
+    <div className="flex min-h-[100dvh] flex-col bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
+      <header className="mx-auto mb-6 flex w-full max-w-5xl items-center gap-2 sm:mb-8">
+        <span className="text-lg leading-none">🏋️</span>
+        <h1 className="text-base font-semibold tracking-tight text-neutral-100 sm:text-lg">Gym Tracker</h1>
       </header>
 
-      <main className={`mx-auto ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+      <main className={`mx-auto w-full flex-1 ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
         <div className="mb-4 flex justify-center">
           <div className="inline-flex rounded-lg border border-neutral-800 bg-neutral-900 p-1">
             <button
@@ -87,6 +87,10 @@ function App() {
           />
         )}
       </main>
+
+      <footer className="mx-auto mt-10 w-full max-w-5xl border-t border-neutral-900 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center">
+        <p className="text-xs text-neutral-700">Gym Tracker · lokal auf deinem Gerät gespeichert</p>
+      </footer>
 
       {selectedDate && (
         <SessionModal
