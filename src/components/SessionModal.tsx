@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { PreviousSessionEntry } from '../state/useAppData';
 import type { Session, SetEntry, UnitDef } from '../types';
 import { getUnitColor } from '../types';
@@ -38,8 +38,14 @@ export function SessionModal({
   getPreviousSessions,
 }: SessionModalProps) {
   const [newExerciseName, setNewExerciseName] = useState('');
+  const [visible, setVisible] = useState(false);
   const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
   const colors = unit ? getUnitColor(unit) : null;
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   function handleAddExercise() {
     if (newExerciseName.trim() === '') return;
@@ -55,37 +61,50 @@ export function SessionModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 sm:items-center"
+      className={`fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-200 sm:items-center sm:p-4 ${
+        visible ? 'opacity-100' : 'opacity-0'
+      }`}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-neutral-800 bg-neutral-950 shadow-2xl"
+        className={`flex h-[100dvh] w-full flex-col bg-neutral-950 shadow-2xl transition-transform duration-300 ease-out sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-neutral-800 ${
+          visible ? 'translate-y-0' : 'translate-y-6'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-neutral-800 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-800 px-4 py-4 sm:px-6">
           <div>
             <p className="text-xs uppercase tracking-wide text-neutral-500">{weekdayLabel(date)}</p>
             <p className="text-lg font-semibold text-neutral-100">{formatDayMonth(date)}</p>
           </div>
           {unit && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${colors!.bg} ${colors!.text}`}>
                 {unit.name}
               </span>
-              <button onClick={handleDeleteSession} className="text-xs text-neutral-500 hover:text-red-400">
-                Einheit löschen
+              <button
+                onClick={handleDeleteSession}
+                className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-red-400"
+              >
+                Löschen
               </button>
             </div>
           )}
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-200" aria-label="Schließen">
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
+            aria-label="Schließen"
+          >
             ✕
           </button>
         </div>
 
         {!session ? (
-          <UnitPicker units={units} onSelect={onSelectUnit} onCreateUnit={onCreateUnit} onDeleteUnit={onDeleteUnit} />
+          <div className="flex-1 overflow-y-auto">
+            <UnitPicker units={units} onSelect={onSelectUnit} onCreateUnit={onCreateUnit} onDeleteUnit={onDeleteUnit} />
+          </div>
         ) : (
-          <div className="max-h-[70vh] overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="flex flex-col gap-4">
               {session.exercises.length === 0 && (
                 <p className="text-sm text-neutral-500">
@@ -105,18 +124,18 @@ export function SessionModal({
               ))}
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex gap-2 pb-[env(safe-area-inset-bottom)]">
               <input
                 type="text"
                 placeholder="Neue Übung hinzufügen…"
                 value={newExerciseName}
                 onChange={(e) => setNewExerciseName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddExercise()}
-                className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none"
+                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm"
               />
               <button
                 onClick={handleAddExercise}
-                className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800"
+                className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2"
               >
                 Hinzufügen
               </button>

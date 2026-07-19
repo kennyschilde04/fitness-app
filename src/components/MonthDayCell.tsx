@@ -16,7 +16,7 @@ export function MonthDayCell({ date, unit, isCurrentMonth, onClick }: MonthDayCe
   return (
     <button
       onClick={onClick}
-      className={`flex min-h-20 flex-col items-center gap-1.5 rounded-lg border p-2 transition sm:min-h-28 sm:p-3
+      className={`flex min-h-20 flex-col items-center gap-1.5 rounded-lg border p-2 transition-all duration-150 active:scale-95 sm:min-h-28 sm:p-3
         ${colors ? `${colors.bg} ${colors.border}` : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700'}
         ${today ? 'ring-2 ring-white/40' : ''}
         ${isCurrentMonth ? '' : 'opacity-40'}

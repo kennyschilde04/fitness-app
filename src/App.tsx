@@ -52,7 +52,7 @@ function App() {
           <div className="inline-flex rounded-lg border border-neutral-800 bg-neutral-900 p-1">
             <button
               onClick={() => setViewMode('week')}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95 ${
                 viewMode === 'week' ? 'bg-neutral-700 text-neutral-100' : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
@@ -60,7 +60,7 @@ function App() {
             </button>
             <button
               onClick={() => setViewMode('month')}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95 ${
                 viewMode === 'month' ? 'bg-neutral-700 text-neutral-100' : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >

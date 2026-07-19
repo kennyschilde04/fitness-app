@@ -43,13 +43,13 @@ export function UnitPicker({ units, onSelect, onCreateUnit, onDeleteUnit }: Unit
               <div key={unit.id} className={`relative rounded-xl border ${colors.bg} ${colors.border}`}>
                 <button
                   onClick={() => onSelect(unit.id)}
-                  className={`w-full rounded-xl p-6 text-center font-semibold transition hover:brightness-125 ${colors.text}`}
+                  className={`w-full rounded-xl p-6 text-center font-semibold transition-all duration-150 active:scale-95 hover:brightness-125 ${colors.text}`}
                 >
                   {unit.name}
                 </button>
                 <button
                   onClick={(e) => handleDeleteUnit(unit, e)}
-                  className="absolute right-2 top-2 rounded-full p-1 text-xs text-neutral-500 hover:text-red-400"
+                  className="absolute right-2 top-2 rounded-full p-1 text-xs text-neutral-500 transition-transform active:scale-90 hover:text-red-400"
                   aria-label={`Einheit ${unit.name} löschen`}
                 >
                   ✕
@@ -67,11 +67,11 @@ export function UnitPicker({ units, onSelect, onCreateUnit, onDeleteUnit }: Unit
           value={newUnitName}
           onChange={(e) => setNewUnitName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-          className="flex-1 rounded-md border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none"
+          className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm"
         />
         <button
           onClick={handleCreate}
-          className="rounded-md border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 hover:bg-neutral-800"
+          className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2"
         >
           Erstellen
         </button>

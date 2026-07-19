@@ -15,7 +15,7 @@ export function DayCell({ date, unit, onClick }: DayCellProps) {
   return (
     <button
       onClick={onClick}
-      className={`flex min-h-[120px] flex-col items-center gap-2 rounded-xl border p-3 text-left transition
+      className={`flex min-h-[120px] flex-col items-center gap-2 rounded-xl border p-3 text-left transition-all duration-150 active:scale-95
         ${colors ? `${colors.bg} ${colors.border}` : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700'}
         ${today ? 'ring-2 ring-white/40' : ''}
       `}

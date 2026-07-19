@@ -18,7 +18,7 @@ export function WeekCalendar({ weekStart, onWeekStartChange, units, getSessionFo
       <div className="mb-4 flex items-center justify-between">
         <button
           onClick={() => onWeekStartChange(addWeeks(weekStart, -1))}
-          className="rounded-lg border border-neutral-800 px-3 py-2 text-neutral-300 hover:bg-neutral-800"
+          className="rounded-lg border border-neutral-800 px-3 py-2 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800"
           aria-label="Vorherige Woche"
         >
           ←
@@ -36,7 +36,7 @@ export function WeekCalendar({ weekStart, onWeekStartChange, units, getSessionFo
 
         <button
           onClick={() => onWeekStartChange(addWeeks(weekStart, 1))}
-          className="rounded-lg border border-neutral-800 px-3 py-2 text-neutral-300 hover:bg-neutral-800"
+          className="rounded-lg border border-neutral-800 px-3 py-2 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800"
           aria-label="Nächste Woche"
         >
           →
