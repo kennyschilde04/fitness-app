@@ -118,12 +118,12 @@ export function SessionModal({
           )}
 
           {session && session.exercises.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto pt-1">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {session.exercises.map((exercise) => (
                 <button
                   key={exercise.exerciseId}
                   onClick={() => jumpToExercise(exercise.exerciseId)}
-                  className="shrink-0 rounded-full border border-neutral-800 px-2.5 py-1 text-[11px] text-neutral-400 transition-transform active:scale-95 hover:text-neutral-200 light:border-neutral-300 light:text-neutral-500"
+                  className="rounded-full border border-neutral-800 px-2.5 py-1 text-[11px] text-neutral-400 transition-transform active:scale-95 hover:text-neutral-200 light:border-neutral-300 light:text-neutral-500"
                 >
                   {exercise.name}
                 </button>
