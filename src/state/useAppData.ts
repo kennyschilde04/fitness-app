@@ -11,9 +11,19 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
+function hasSetData(sets: SetEntry[]): boolean {
+  return sets.some((s) => s.weight !== null || s.reps !== null);
+}
+
 export interface PreviousSessionEntry {
   date: string;
   exercise: SessionExercise;
+}
+
+export interface ExerciseHistoryEntry {
+  exerciseId: string;
+  name: string;
+  entries: SetEntry[][];
 }
 
 export function useAppData() {
@@ -181,13 +191,40 @@ export function useAppData() {
       return data.sessions
         .filter((s) => s.unitId === unitId && s.id !== currentSessionId)
         .filter((s) => (beforeDate ? s.date < beforeDate : true))
-        .filter((s) => s.exercises.some((ex) => ex.exerciseId === exerciseId))
+        .filter((s) => s.exercises.some((ex) => ex.exerciseId === exerciseId && hasSetData(ex.sets)))
         .sort((a, b) => (a.date < b.date ? 1 : -1))
         .slice(0, limit)
         .map((s) => ({
           date: s.date,
           exercise: s.exercises.find((ex) => ex.exerciseId === exerciseId)!,
         }));
+    },
+    [data.sessions],
+  );
+
+  const getUnitExerciseHistory = useCallback(
+    (unitId: string, limitPerExercise = 10): ExerciseHistoryEntry[] => {
+      const unitSessions = data.sessions
+        .filter((s) => s.unitId === unitId)
+        .sort((a, b) => (a.date < b.date ? 1 : -1));
+
+      const byExercise = new Map<string, ExerciseHistoryEntry>();
+
+      for (const session of unitSessions) {
+        for (const ex of session.exercises) {
+          if (!hasSetData(ex.sets)) continue;
+          let entry = byExercise.get(ex.exerciseId);
+          if (!entry) {
+            entry = { exerciseId: ex.exerciseId, name: ex.name, entries: [] };
+            byExercise.set(ex.exerciseId, entry);
+          }
+          if (entry.entries.length < limitPerExercise) {
+            entry.entries.push(ex.sets);
+          }
+        }
+      }
+
+      return Array.from(byExercise.values());
     },
     [data.sessions],
   );
@@ -207,5 +244,6 @@ export function useAppData() {
     removeExerciseFromUnit,
     getPreviousSessions,
     getRecentSessions,
+    getUnitExerciseHistory,
   };
 }

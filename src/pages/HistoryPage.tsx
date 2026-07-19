@@ -1,47 +1,46 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { Session, UnitDef } from '../types';
-import { getUnitColor } from '../types';
+import type { ExerciseHistoryEntry } from '../state/useAppData';
 import { useAppData } from '../state/useAppData';
-import { formatDayMonth, fromISODate } from '../utils/date';
+import type { UnitDef } from '../types';
+import { getUnitColor, MAX_SETS } from '../types';
 import { formatSet } from '../utils/format';
 
-const OVERVIEW_LIMIT = 5;
+const OVERVIEW_LIMIT = 3;
 const FOCUSED_LIMIT = 10;
 
-function SessionCard({ session }: { session: Session }) {
+function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
   return (
     <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4">
-      <p className="mb-2 text-sm font-medium text-neutral-300">{formatDayMonth(fromISODate(session.date))}</p>
-      {session.exercises.length === 0 ? (
-        <p className="text-xs italic text-neutral-600">Keine Übungen erfasst.</p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {session.exercises.map((exercise) => (
-            <div key={exercise.exerciseId} className="text-xs">
-              <span className="font-medium text-neutral-300">{exercise.name}</span>
-              <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-neutral-500">
-                {exercise.sets.map((set, i) => (
-                  <span key={i}>
-                    <span className="text-neutral-600">S{i + 1}</span> {formatSet(set)}
-                  </span>
-                ))}
-              </div>
-              {exercise.note && <p className="mt-0.5 italic text-neutral-600">{exercise.note}</p>}
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="mb-2 text-sm font-semibold text-neutral-100">{entry.name}</p>
+      <div className="mb-1 grid grid-cols-4 gap-2">
+        {Array.from({ length: MAX_SETS }, (_, i) => (
+          <span key={i} className="text-center text-[10px] uppercase tracking-wide text-neutral-600">
+            Satz {i + 1}
+          </span>
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        {entry.entries.map((sets, i) => (
+          <div key={i} className="grid grid-cols-4 gap-2">
+            {sets.map((set, j) => (
+              <span key={j} className="text-center text-xs text-neutral-400">
+                {formatSet(set)}
+              </span>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
 function UnitSection({
   unit,
-  sessions,
+  exerciseHistory,
   focused,
 }: {
   unit: UnitDef;
-  sessions: Session[];
+  exerciseHistory: ExerciseHistoryEntry[];
   focused: boolean;
 }) {
   const colors = getUnitColor(unit);
@@ -62,12 +61,12 @@ function UnitSection({
         )}
       </div>
 
-      {sessions.length === 0 ? (
+      {exerciseHistory.length === 0 ? (
         <p className="text-xs italic text-neutral-600">Noch keine Einheiten erfasst.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {sessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
+          {exerciseHistory.map((entry) => (
+            <ExerciseHistoryCard key={entry.exerciseId} entry={entry} />
           ))}
         </div>
       )}
@@ -78,7 +77,7 @@ function UnitSection({
 export function HistoryPage() {
   const { unitId } = useParams();
   const navigate = useNavigate();
-  const { units, getRecentSessions } = useAppData();
+  const { units, getUnitExerciseHistory } = useAppData();
 
   const sortedUnits = [...units].sort((a, b) => a.order - b.order);
   const focusedUnit = unitId ? sortedUnits.find((u) => u.id === unitId) : undefined;
@@ -101,7 +100,11 @@ export function HistoryPage() {
         {unitId && !focusedUnit ? (
           <p className="text-sm text-neutral-500">Diese Einheit existiert nicht (mehr).</p>
         ) : focusedUnit ? (
-          <UnitSection unit={focusedUnit} sessions={getRecentSessions(focusedUnit.id, FOCUSED_LIMIT)} focused />
+          <UnitSection
+            unit={focusedUnit}
+            exerciseHistory={getUnitExerciseHistory(focusedUnit.id, FOCUSED_LIMIT)}
+            focused
+          />
         ) : sortedUnits.length === 0 ? (
           <p className="text-sm text-neutral-500">Noch keine Einheiten angelegt.</p>
         ) : (
@@ -109,7 +112,7 @@ export function HistoryPage() {
             <UnitSection
               key={unit.id}
               unit={unit}
-              sessions={getRecentSessions(unit.id, OVERVIEW_LIMIT)}
+              exerciseHistory={getUnitExerciseHistory(unit.id, OVERVIEW_LIMIT)}
               focused={false}
             />
           ))
