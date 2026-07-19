@@ -36,3 +36,9 @@ input[type='number'] {
 *::-webkit-scrollbar {
   display: none;
 }
+
+button {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
