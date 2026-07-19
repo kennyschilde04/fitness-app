@@ -140,9 +140,17 @@ export function SessionModal({
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="flex flex-col gap-5">
               {session.exercises.length === 0 && (
-                <p className="text-sm text-neutral-500">
-                  Noch keine Übungen für diese Einheit. Füge unten deine erste Übung hinzu.
-                </p>
+                <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-neutral-700 bg-neutral-900/40 px-6 py-10 text-center light:border-neutral-300 light:bg-neutral-50">
+                  <span className="text-3xl">✅</span>
+                  <div>
+                    <p className="text-base font-semibold text-neutral-100 light:text-neutral-900">
+                      {unit ? `„${unit.name}“ wurde angelegt` : 'Einheit wurde angelegt'}
+                    </p>
+                    <p className="mt-1 text-sm text-neutral-500 light:text-neutral-600">
+                      Jetzt deine erste Übung unten hinzufügen, um loszulegen.
+                    </p>
+                  </div>
+                </div>
               )}
 
               {session.exercises.map((exercise) => (
