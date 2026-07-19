@@ -20,6 +20,7 @@ interface SessionModalProps {
   onAddExercise: (name: string) => void;
   onRemoveExercise: (exerciseId: string) => void;
   getPreviousSessions: (unitId: string, exerciseId: string) => PreviousSessionEntry[];
+  onViewHistory: (unitId: string) => void;
 }
 
 export function SessionModal({
@@ -36,6 +37,7 @@ export function SessionModal({
   onAddExercise,
   onRemoveExercise,
   getPreviousSessions,
+  onViewHistory,
 }: SessionModalProps) {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [visible, setVisible] = useState(false);
@@ -72,31 +74,40 @@ export function SessionModal({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-neutral-800 px-4 py-4 sm:px-6">
-          <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">{weekdayLabel(date)}</p>
-            <p className="text-lg font-semibold text-neutral-100">{formatDayMonth(date)}</p>
+        <div className="flex shrink-0 flex-col gap-2 border-b border-neutral-800 px-4 py-4 sm:px-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-neutral-500">{weekdayLabel(date)}</p>
+              <p className="text-lg font-semibold text-neutral-100">{formatDayMonth(date)}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
+              aria-label="Schließen"
+            >
+              ✕
+            </button>
           </div>
+
           {unit && (
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${colors!.bg} ${colors!.text}`}>
                 {unit.name}
               </span>
               <button
+                onClick={() => onViewHistory(unit.id)}
+                className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
+              >
+                Verlauf
+              </button>
+              <button
                 onClick={handleDeleteSession}
-                className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-red-400"
+                className="ml-auto rounded-md border border-red-900/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-400/90 transition-transform active:scale-95 hover:bg-red-500/20 hover:text-red-300"
               >
                 Löschen
               </button>
             </div>
           )}
-          <button
-            onClick={onClose}
-            className="rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
-            aria-label="Schließen"
-          >
-            ✕
-          </button>
         </div>
 
         {!session ? (

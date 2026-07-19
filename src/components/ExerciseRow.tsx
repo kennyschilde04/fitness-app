@@ -1,6 +1,7 @@
 import type { PreviousSessionEntry } from '../state/useAppData';
 import type { SessionExercise, SetEntry } from '../types';
 import { formatDayMonth, fromISODate } from '../utils/date';
+import { formatSet } from '../utils/format';
 
 interface ExerciseRowProps {
   exercise: SessionExercise;
@@ -16,11 +17,6 @@ function parseNumber(value: string): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-function formatSet(set: SetEntry): string {
-  if (set.weight === null && set.reps === null) return '–';
-  return `${set.weight ?? '–'}×${set.reps ?? '–'}`;
-}
-
 const inputClass =
   'w-full min-w-0 rounded-lg border border-neutral-700 bg-neutral-950 px-2 py-3 text-center text-base text-neutral-100 focus:border-neutral-400 focus:outline-none sm:py-1.5 sm:text-sm';
 
@@ -31,7 +27,7 @@ export function ExerciseRow({ exercise, history, onSetChange, onNoteChange, onRe
         <h3 className="text-base font-semibold text-neutral-100">{exercise.name}</h3>
         <button
           onClick={onRemove}
-          className="shrink-0 rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-red-400"
+          className="shrink-0 rounded-md border border-red-900/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-400/90 transition-transform active:scale-95 hover:bg-red-500/20 hover:text-red-300"
           aria-label={`${exercise.name} entfernen`}
         >
           Entfernen

@@ -49,7 +49,7 @@ export function UnitPicker({ units, onSelect, onCreateUnit, onDeleteUnit }: Unit
                 </button>
                 <button
                   onClick={(e) => handleDeleteUnit(unit, e)}
-                  className="absolute right-2 top-2 rounded-full p-1 text-xs text-neutral-500 transition-transform active:scale-90 hover:text-red-400"
+                  className="absolute right-2 top-2 rounded-full border border-red-500/30 bg-red-500/15 p-1 text-xs text-red-300/90 transition-transform active:scale-90 hover:bg-red-500/25 hover:text-red-200"
                   aria-label={`Einheit ${unit.name} löschen`}
                 >
                   ✕

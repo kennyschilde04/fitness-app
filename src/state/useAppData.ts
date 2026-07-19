@@ -164,6 +164,15 @@ export function useAppData() {
     }));
   }, []);
 
+  const getRecentSessions = useCallback(
+    (unitId: string, limit = 10): Session[] =>
+      data.sessions
+        .filter((s) => s.unitId === unitId)
+        .sort((a, b) => (a.date < b.date ? 1 : -1))
+        .slice(0, limit),
+    [data.sessions],
+  );
+
   const getPreviousSessions = useCallback(
     (unitId: string, exerciseId: string, currentSessionId: string, limit = 3): PreviousSessionEntry[] => {
       const currentSession = data.sessions.find((s) => s.id === currentSessionId);
@@ -197,5 +206,6 @@ export function useAppData() {
     addExerciseToSession,
     removeExerciseFromUnit,
     getPreviousSessions,
+    getRecentSessions,
   };
 }
