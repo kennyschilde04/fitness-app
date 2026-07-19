@@ -82,7 +82,7 @@ export function SessionModal({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 flex-col border-b border-neutral-800 px-4 py-4 light:border-neutral-200 sm:px-6">
+        <div className="flex shrink-0 flex-col border-b border-neutral-800 px-4 py-5 light:border-neutral-200 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
               <div className={unit ? `-mx-3 -my-1.5 rounded-xl px-3 py-1.5 ${colors!.bg}` : undefined}>
@@ -142,8 +142,8 @@ export function SessionModal({
             <UnitPicker units={units} onSelect={onSelectUnit} onCreateUnit={onCreateUnit} onDeleteUnit={onDeleteUnit} />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="flex flex-col gap-5">
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6">
+            <div className="flex flex-col gap-6">
               {session.exercises.length === 0 && (
                 <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-neutral-700 bg-neutral-900/40 px-6 py-10 text-center light:border-neutral-300 light:bg-neutral-50">
                   <span className="text-3xl">✅</span>
@@ -172,7 +172,7 @@ export function SessionModal({
               ))}
             </div>
 
-            <div className="mt-4 flex gap-2 pb-[env(safe-area-inset-bottom)]">
+            <div className="mt-6 flex gap-2 pb-[env(safe-area-inset-bottom)]">
               <input
                 type="text"
                 placeholder="Neue Übung hinzufügen…"
