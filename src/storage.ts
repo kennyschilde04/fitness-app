@@ -1,4 +1,5 @@
 import type { AppData, UnitDef } from './types';
+import { DEMO_APP_DATA } from './devSeed';
 
 const STORAGE_KEY = 'gym-tracker-data-v2';
 
@@ -14,7 +15,7 @@ function emptyData(): AppData {
 
 export function loadData(): AppData {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return emptyData();
+  if (!raw) return structuredClone(DEMO_APP_DATA);
   try {
     const parsed = JSON.parse(raw) as AppData;
     return {
