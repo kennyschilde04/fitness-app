@@ -71,6 +71,15 @@ export function useAppData() {
         return '';
       }
 
+      function maxSetCountFor(exerciseId: string): number {
+        let max = 0;
+        for (const s of priorSessions) {
+          const ex = s.exercises.find((e) => e.exerciseId === exerciseId);
+          if (ex && hasSetData(ex.sets)) max = Math.max(max, ex.sets.length);
+        }
+        return max > 0 ? max : DEFAULT_SETS;
+      }
+
       const session: Session = {
         id: newId(),
         date,
@@ -79,7 +88,7 @@ export function useAppData() {
           exerciseId: ex.id,
           name: ex.name,
           note: lastNoteFor(ex.id),
-          sets: emptySets(),
+          sets: emptySets(maxSetCountFor(ex.id)),
         })),
       };
 
