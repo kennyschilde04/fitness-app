@@ -84,14 +84,33 @@ export function SessionModal({
       >
         <div className="flex shrink-0 flex-col border-b border-neutral-800 px-4 py-4 light:border-neutral-200 sm:px-6">
           <div className="flex items-center justify-between gap-3">
-            <div className={unit ? `-mx-3 -my-1.5 rounded-xl px-3 py-1.5 ${colors!.bg}` : undefined}>
-              <p className="text-xs uppercase tracking-wide text-neutral-500">
-                {unit ? `${weekdayLabel(date)} · ${formatDayMonth(date)}` : weekdayLabel(date)}
-              </p>
-              {unit ? (
-                <p className={`mt-0.5 text-2xl font-bold leading-tight ${colors!.text}`}>{unit.name}</p>
-              ) : (
-                <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+              <div className={unit ? `-mx-3 -my-1.5 rounded-xl px-3 py-1.5 ${colors!.bg}` : undefined}>
+                <p className="text-xs uppercase tracking-wide text-neutral-500">
+                  {unit ? `${weekdayLabel(date)} · ${formatDayMonth(date)}` : weekdayLabel(date)}
+                </p>
+                {unit ? (
+                  <p className={`mt-0.5 text-2xl font-bold leading-tight ${colors!.text}`}>{unit.name}</p>
+                ) : (
+                  <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
+                )}
+              </div>
+
+              {unit && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => onViewHistory(unit.id)}
+                    className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
+                  >
+                    Insight
+                  </button>
+                  <button
+                    onClick={handleDeleteSession}
+                    className="rounded-md px-2 py-1 text-xs text-red-400/80 transition-transform active:scale-95 hover:text-red-300"
+                  >
+                    Löschen
+                  </button>
+                </div>
               )}
             </div>
             <button
@@ -102,23 +121,6 @@ export function SessionModal({
               ✕
             </button>
           </div>
-
-          {unit && (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => onViewHistory(unit.id)}
-                className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
-              >
-                Insight
-              </button>
-              <button
-                onClick={handleDeleteSession}
-                className="rounded-md px-2 py-1 text-xs text-red-400/80 transition-transform active:scale-95 hover:text-red-300"
-              >
-                Löschen
-              </button>
-            </div>
-          )}
 
           {session && session.exercises.length > 1 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
