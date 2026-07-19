@@ -82,21 +82,21 @@ export function SessionModal({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 flex-col gap-2 border-b border-neutral-800 px-4 py-4 light:border-neutral-200 sm:px-6">
-          <div className="flex items-start justify-between">
-            <div>
+        <div className="flex shrink-0 flex-col border-b border-neutral-800 px-4 py-4 light:border-neutral-200 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className={unit ? `-mx-3 -my-1.5 rounded-xl px-3 py-1.5 ${colors!.bg}` : undefined}>
               <p className="text-xs uppercase tracking-wide text-neutral-500">
                 {unit ? `${weekdayLabel(date)} · ${formatDayMonth(date)}` : weekdayLabel(date)}
               </p>
               {unit ? (
-                <p className={`text-2xl font-bold leading-tight ${colors!.text}`}>{unit.name}</p>
+                <p className={`mt-0.5 text-2xl font-bold leading-tight ${colors!.text}`}>{unit.name}</p>
               ) : (
                 <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
+              className="shrink-0 rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
               aria-label="Schließen"
             >
               ✕
@@ -104,7 +104,7 @@ export function SessionModal({
           </div>
 
           {unit && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => onViewHistory(unit.id)}
                 className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
@@ -113,7 +113,7 @@ export function SessionModal({
               </button>
               <button
                 onClick={handleDeleteSession}
-                className="rounded-md border border-red-900/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-400/90 transition-transform active:scale-95 hover:bg-red-500/20 hover:text-red-300"
+                className="rounded-md px-2 py-1 text-xs text-red-400/80 transition-transform active:scale-95 hover:text-red-300"
               >
                 Löschen
               </button>
@@ -121,7 +121,7 @@ export function SessionModal({
           )}
 
           {session && session.exercises.length > 1 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {session.exercises.map((exercise) => (
                 <button
                   key={exercise.exerciseId}
