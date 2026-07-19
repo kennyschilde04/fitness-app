@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { loadData, saveData } from '../storage';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
-import { MAX_SETS } from '../types';
+import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
-function emptySets(): SetEntry[] {
-  return Array.from({ length: MAX_SETS }, () => ({ weight: null, reps: null }));
+function emptySets(count: number = DEFAULT_SETS): SetEntry[] {
+  return Array.from({ length: count }, () => ({ weight: null, reps: null }));
 }
 
 function newId(): string {
@@ -59,6 +59,18 @@ export function useAppData() {
         .filter((e) => e.unitId === unitId)
         .sort((a, b) => a.order - b.order);
 
+      const priorSessions = prev.sessions
+        .filter((s) => s.unitId === unitId && s.date < date)
+        .sort((a, b) => (a.date < b.date ? 1 : -1));
+
+      function lastNoteFor(exerciseId: string): string {
+        for (const s of priorSessions) {
+          const ex = s.exercises.find((e) => e.exerciseId === exerciseId);
+          if (ex && ex.note.trim()) return ex.note;
+        }
+        return '';
+      }
+
       const session: Session = {
         id: newId(),
         date,
@@ -66,7 +78,7 @@ export function useAppData() {
         exercises: unitExercises.map((ex) => ({
           exerciseId: ex.id,
           name: ex.name,
-          note: '',
+          note: lastNoteFor(ex.id),
           sets: emptySets(),
         })),
       };
@@ -95,6 +107,40 @@ export function useAppData() {
     },
     [],
   );
+
+  const addSet = useCallback((sessionId: string, exerciseId: string) => {
+    setData((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((s) => {
+        if (s.id !== sessionId) return s;
+        return {
+          ...s,
+          exercises: s.exercises.map((ex) => {
+            if (ex.exerciseId !== exerciseId) return ex;
+            if (ex.sets.length >= MAX_SETS) return ex;
+            return { ...ex, sets: [...ex.sets, { weight: null, reps: null }] };
+          }),
+        };
+      }),
+    }));
+  }, []);
+
+  const removeSet = useCallback((sessionId: string, exerciseId: string) => {
+    setData((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((s) => {
+        if (s.id !== sessionId) return s;
+        return {
+          ...s,
+          exercises: s.exercises.map((ex) => {
+            if (ex.exerciseId !== exerciseId) return ex;
+            if (ex.sets.length <= MIN_SETS) return ex;
+            return { ...ex, sets: ex.sets.slice(0, -1) };
+          }),
+        };
+      }),
+    }));
+  }, []);
 
   const updateExerciseNote = useCallback((sessionId: string, exerciseId: string, note: string) => {
     setData((prev) => ({
@@ -236,6 +282,8 @@ export function useAppData() {
     getSessionForDate,
     createUnit,
     createSession,
+    addSet,
+    removeSet,
     deleteUnit,
     deleteSession,
     updateSet,

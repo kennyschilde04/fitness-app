@@ -1,4 +1,6 @@
-export const MAX_SETS = 4;
+export const DEFAULT_SETS = 3;
+export const MIN_SETS = 1;
+export const MAX_SETS = 6;
 
 export interface UnitDef {
   id: string;

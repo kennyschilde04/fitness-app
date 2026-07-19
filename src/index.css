@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant light (&:where(.light, .light *));
+
 html,
 body,
 #root {
@@ -13,6 +15,11 @@ body {
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
+html.light body {
+  background: #fafafa;
+  color: #171717;
+}
+
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -20,4 +27,12 @@ input[type='number']::-webkit-outer-spin-button {
 }
 input[type='number'] {
   appearance: textfield;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none;
 }

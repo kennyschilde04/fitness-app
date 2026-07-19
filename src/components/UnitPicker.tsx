@@ -33,7 +33,7 @@ export function UnitPicker({ units, onSelect, onCreateUnit, onDeleteUnit }: Unit
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <p className="text-sm text-neutral-400">Welche Einheit trainierst du an diesem Tag?</p>
+      <p className="text-sm text-neutral-400 light:text-neutral-600">Welche Einheit trainierst du an diesem Tag?</p>
 
       {sortedUnits.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -60,18 +60,18 @@ export function UnitPicker({ units, onSelect, onCreateUnit, onDeleteUnit }: Unit
         </div>
       )}
 
-      <div className="flex gap-2 border-t border-neutral-800 pt-4">
+      <div className="flex gap-2 border-t border-neutral-800 pt-4 light:border-neutral-200">
         <input
           type="text"
           placeholder="Neue Einheit anlegen (z.B. Push/Pull)…"
           value={newUnitName}
           onChange={(e) => setNewUnitName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-          className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm"
+          className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm light:border-neutral-300 light:bg-neutral-50 light:text-neutral-900"
         />
         <button
           onClick={handleCreate}
-          className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2"
+          className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2 light:border-neutral-300 light:text-neutral-700 light:hover:bg-neutral-100"
         >
           Erstellen
         </button>

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Header } from '../components/Header';
 import { MonthCalendar } from '../components/MonthCalendar';
 import { SessionModal } from '../components/SessionModal';
 import { WeekCalendar } from '../components/WeekCalendar';
@@ -12,6 +13,13 @@ const VIEW_MODE_KEY = 'gym-tracker-view-mode';
 
 function loadViewMode(): ViewMode {
   return localStorage.getItem(VIEW_MODE_KEY) === 'month' ? 'month' : 'week';
+}
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 11) return 'Guten Morgen';
+  if (hour < 18) return 'Guten Tag';
+  return 'Guten Abend';
 }
 
 export function CalendarPage() {
@@ -30,12 +38,15 @@ export function CalendarPage() {
 
   const {
     units,
+    sessions,
     getSessionForDate,
     createUnit,
     createSession,
     deleteUnit,
     deleteSession,
     updateSet,
+    addSet,
+    removeSet,
     updateExerciseNote,
     addExerciseToSession,
     removeExerciseFromUnit,
@@ -43,6 +54,20 @@ export function CalendarPage() {
   } = useAppData();
 
   const selectedSession = selectedDate ? getSessionForDate(toISODate(selectedDate)) : undefined;
+
+  const { weekCount, monthCount } = useMemo(() => {
+    const now = new Date();
+    const thisWeekStart = toISODate(getWeekStart(now));
+    const weekEnd = new Date(getWeekStart(now));
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const thisWeekEnd = toISODate(weekEnd);
+    const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    return {
+      weekCount: sessions.filter((s) => s.date >= thisWeekStart && s.date <= thisWeekEnd).length,
+      monthCount: sessions.filter((s) => s.date.startsWith(thisMonthPrefix)).length,
+    };
+  }, [sessions]);
 
   function openDay(date: Date) {
     navigate(`/day/${toISODate(date)}`);
@@ -63,26 +88,31 @@ export function CalendarPage() {
     if (unitId) createSession(toISODate(selectedDate), unitId);
   }
 
+  function handleLongPressDelete(date: Date) {
+    const session = getSessionForDate(toISODate(date));
+    if (!session) return;
+    if (window.confirm('Diese Einheit für den Tag wirklich löschen? Alle erfassten Sätze gehen verloren.')) {
+      deleteSession(session.id);
+    }
+  }
+
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-8">
-      <header className="mx-auto mb-6 flex w-full max-w-5xl items-center gap-2 sm:mb-8">
-        <span className="text-lg leading-none">🏋️</span>
-        <h1 className="text-base font-semibold tracking-tight text-neutral-100 sm:text-lg">Gym Tracker</h1>
-        <button
-          onClick={() => navigate('/history')}
-          className="ml-auto rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
-        >
-          Verlauf
-        </button>
-      </header>
+    <div className="flex min-h-[100dvh] flex-col bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
+      <Header />
 
       <main className={`mx-auto w-full flex-1 ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+        <p className="mb-4 text-xs text-neutral-500">
+          {greeting()} — {weekCount}x diese Woche · {monthCount}x diesen Monat
+        </p>
+
         <div className="mb-4 flex justify-center">
-          <div className="inline-flex rounded-lg border border-neutral-800 bg-neutral-900 p-1">
+          <div className="inline-flex rounded-lg border border-neutral-800 bg-neutral-900 p-1 light:border-neutral-200 light:bg-neutral-100">
             <button
               onClick={() => setViewMode('week')}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95 ${
-                viewMode === 'week' ? 'bg-neutral-700 text-neutral-100' : 'text-neutral-400 hover:text-neutral-200'
+                viewMode === 'week'
+                  ? 'bg-neutral-700 text-neutral-100 light:bg-white light:text-neutral-900'
+                  : 'text-neutral-400 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700'
               }`}
             >
               Woche
@@ -90,7 +120,9 @@ export function CalendarPage() {
             <button
               onClick={() => setViewMode('month')}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95 ${
-                viewMode === 'month' ? 'bg-neutral-700 text-neutral-100' : 'text-neutral-400 hover:text-neutral-200'
+                viewMode === 'month'
+                  ? 'bg-neutral-700 text-neutral-100 light:bg-white light:text-neutral-900'
+                  : 'text-neutral-400 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700'
               }`}
             >
               Monat
@@ -105,6 +137,7 @@ export function CalendarPage() {
             units={units}
             getSessionForDate={getSessionForDate}
             onDayClick={openDay}
+            onDayLongPress={handleLongPressDelete}
           />
         ) : (
           <MonthCalendar
@@ -113,12 +146,13 @@ export function CalendarPage() {
             units={units}
             getSessionForDate={getSessionForDate}
             onDayClick={openDay}
+            onDayLongPress={handleLongPressDelete}
           />
         )}
       </main>
 
-      <footer className="mx-auto mt-10 w-full max-w-5xl border-t border-neutral-900 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center">
-        <p className="text-xs text-neutral-700">Gym Tracker · lokal auf deinem Gerät gespeichert</p>
+      <footer className="mx-auto mt-10 w-full max-w-5xl border-t border-neutral-900 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center light:border-neutral-200">
+        <p className="text-xs text-neutral-700 light:text-neutral-400">Gym Tracker · lokal auf deinem Gerät gespeichert</p>
       </footer>
 
       {selectedDate && (
@@ -134,6 +168,8 @@ export function CalendarPage() {
           onSetChange={(exerciseId, setIndex, patch) =>
             selectedSession && updateSet(selectedSession.id, exerciseId, setIndex, patch)
           }
+          onAddSet={(exerciseId) => selectedSession && addSet(selectedSession.id, exerciseId)}
+          onRemoveSet={(exerciseId) => selectedSession && removeSet(selectedSession.id, exerciseId)}
           onNoteChange={(exerciseId, note) =>
             selectedSession && updateExerciseNote(selectedSession.id, exerciseId, note)
           }

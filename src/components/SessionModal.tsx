@@ -16,11 +16,17 @@ interface SessionModalProps {
   onDeleteUnit: (unitId: string) => void;
   onDeleteSession: () => void;
   onSetChange: (exerciseId: string, setIndex: number, patch: Partial<SetEntry>) => void;
+  onAddSet: (exerciseId: string) => void;
+  onRemoveSet: (exerciseId: string) => void;
   onNoteChange: (exerciseId: string, note: string) => void;
   onAddExercise: (name: string) => void;
   onRemoveExercise: (exerciseId: string) => void;
   getPreviousSessions: (unitId: string, exerciseId: string) => PreviousSessionEntry[];
   onViewHistory: (unitId: string) => void;
+}
+
+function jumpToExercise(exerciseId: string) {
+  document.getElementById(`exercise-${exerciseId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 export function SessionModal({
@@ -33,6 +39,8 @@ export function SessionModal({
   onDeleteUnit,
   onDeleteSession,
   onSetChange,
+  onAddSet,
+  onRemoveSet,
   onNoteChange,
   onAddExercise,
   onRemoveExercise,
@@ -69,16 +77,16 @@ export function SessionModal({
       onClick={onClose}
     >
       <div
-        className={`flex h-[100dvh] w-full flex-col bg-neutral-950 shadow-2xl transition-transform duration-300 ease-out sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-neutral-800 ${
+        className={`flex h-[100dvh] w-full flex-col bg-neutral-950 shadow-2xl transition-transform duration-300 ease-out sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-neutral-800 light:bg-white light:sm:border-neutral-200 ${
           visible ? 'translate-y-0' : 'translate-y-6'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 flex-col gap-2 border-b border-neutral-800 px-4 py-4 sm:px-6">
+        <div className="flex shrink-0 flex-col gap-2 border-b border-neutral-800 px-4 py-4 light:border-neutral-200 sm:px-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-wide text-neutral-500">{weekdayLabel(date)}</p>
-              <p className="text-lg font-semibold text-neutral-100">{formatDayMonth(date)}</p>
+              <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
             </div>
             <button
               onClick={onClose}
@@ -98,14 +106,28 @@ export function SessionModal({
                 onClick={() => onViewHistory(unit.id)}
                 className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
               >
-                Verlauf
+                Insight
               </button>
               <button
                 onClick={handleDeleteSession}
-                className="ml-auto rounded-md border border-red-900/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-400/90 transition-transform active:scale-95 hover:bg-red-500/20 hover:text-red-300"
+                className="rounded-md border border-red-900/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-400/90 transition-transform active:scale-95 hover:bg-red-500/20 hover:text-red-300"
               >
                 Löschen
               </button>
+            </div>
+          )}
+
+          {session && session.exercises.length > 1 && (
+            <div className="flex gap-1.5 overflow-x-auto pt-1">
+              {session.exercises.map((exercise) => (
+                <button
+                  key={exercise.exerciseId}
+                  onClick={() => jumpToExercise(exercise.exerciseId)}
+                  className="shrink-0 rounded-full border border-neutral-800 px-2.5 py-1 text-[11px] text-neutral-400 transition-transform active:scale-95 hover:text-neutral-200 light:border-neutral-300 light:text-neutral-500"
+                >
+                  {exercise.name}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -129,6 +151,8 @@ export function SessionModal({
                   exercise={exercise}
                   history={getPreviousSessions(session.unitId, exercise.exerciseId)}
                   onSetChange={(setIndex, patch) => onSetChange(exercise.exerciseId, setIndex, patch)}
+                  onAddSet={() => onAddSet(exercise.exerciseId)}
+                  onRemoveSet={() => onRemoveSet(exercise.exerciseId)}
                   onNoteChange={(note) => onNoteChange(exercise.exerciseId, note)}
                   onRemove={() => onRemoveExercise(exercise.exerciseId)}
                 />
@@ -142,11 +166,11 @@ export function SessionModal({
                 value={newExerciseName}
                 onChange={(e) => setNewExerciseName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddExercise()}
-                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm"
+                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm light:border-neutral-300 light:bg-neutral-50 light:text-neutral-900"
               />
               <button
                 onClick={handleAddExercise}
-                className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2"
+                className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2 light:border-neutral-300 light:text-neutral-700 light:hover:bg-neutral-100"
               >
                 Hinzufügen
               </button>
