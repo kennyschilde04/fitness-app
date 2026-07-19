@@ -50,10 +50,10 @@ export function HistoryPage() {
   const exerciseHistory = activeUnit ? getUnitExerciseHistory(activeUnit.id, ALL_LIMIT) : [];
 
   return (
-    <div className="min-h-[100dvh] bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
       <Header backLabel="Zurück" title="Insight" />
 
-      <main className="mx-auto w-full max-w-3xl pb-12">
+      <main className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto pb-12">
         {sortedUnits.length === 0 ? (
           <p className="text-sm text-neutral-500">Noch keine Einheiten angelegt.</p>
         ) : (

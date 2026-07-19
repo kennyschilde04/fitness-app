@@ -8,7 +8,7 @@ interface WeekCalendarProps {
   units: UnitDef[];
   getSessionForDate: (date: string) => Session | undefined;
   onDayClick: (date: Date) => void;
-  onDayLongPress?: (date: Date) => void;
+  onDayLongPress?: (date: Date, x: number, y: number) => void;
 }
 
 export function WeekCalendar({
@@ -22,14 +22,14 @@ export function WeekCalendar({
   const days = getWeekDays(weekStart);
 
   return (
-    <div className="w-full">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <button
           onClick={() => onWeekStartChange(addWeeks(weekStart, -1))}
-          className="rounded-lg border border-neutral-800 px-3 py-2 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 leading-none transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
           aria-label="Vorherige Woche"
         >
-          ←
+          <span className="-mt-0.5">←</span>
         </button>
 
         <span className="text-lg font-semibold text-neutral-100 light:text-neutral-900">
@@ -38,14 +38,14 @@ export function WeekCalendar({
 
         <button
           onClick={() => onWeekStartChange(addWeeks(weekStart, 1))}
-          className="rounded-lg border border-neutral-800 px-3 py-2 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 leading-none transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
           aria-label="Nächste Woche"
         >
-          →
+          <span className="-mt-0.5">→</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-7">
         {days.map((date) => {
           const session = getSessionForDate(toISODate(date));
           const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
@@ -55,7 +55,7 @@ export function WeekCalendar({
               date={date}
               unit={unit}
               onClick={() => onDayClick(date)}
-              onLongPress={() => onDayLongPress?.(date)}
+              onLongPress={(x, y) => onDayLongPress?.(date, x, y)}
             />
           );
         })}

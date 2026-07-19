@@ -1,14 +1,16 @@
 import { useRef } from 'react';
 
-export function useLongPress(onLongPress: () => void, ms = 500) {
+export function useLongPress(onLongPress: (x: number, y: number) => void, ms = 500) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firedRef = useRef(false);
 
-  function start() {
+  function start(e: React.PointerEvent) {
     firedRef.current = false;
+    const x = e.clientX;
+    const y = e.clientY;
     timerRef.current = setTimeout(() => {
       firedRef.current = true;
-      onLongPress();
+      onLongPress(x, y);
     }, ms);
   }
 

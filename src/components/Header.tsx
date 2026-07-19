@@ -29,9 +29,10 @@ export function Header({ backLabel, title }: HeaderProps) {
       {backLabel ? (
         <button
           onClick={() => navigate(-1)}
-          className="rounded-md px-2 py-1 text-sm text-neutral-400 transition-transform active:scale-95 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700"
+          className="flex items-center gap-1 rounded-md px-2 py-1 text-sm leading-none text-neutral-400 transition-transform active:scale-95 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700"
         >
-          ← {backLabel}
+          <span className="-mt-0.5">←</span>
+          <span>{backLabel}</span>
         </button>
       ) : (
         <button

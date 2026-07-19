@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { DayContextMenu } from '../components/DayContextMenu';
 import { Header } from '../components/Header';
 import { MonthCalendar } from '../components/MonthCalendar';
 import { SessionModal } from '../components/SessionModal';
@@ -15,11 +16,10 @@ function loadViewMode(): ViewMode {
   return localStorage.getItem(VIEW_MODE_KEY) === 'month' ? 'month' : 'week';
 }
 
-function greeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 11) return 'Guten Morgen';
-  if (hour < 18) return 'Guten Tag';
-  return 'Guten Abend';
+interface ContextMenuState {
+  date: Date;
+  x: number;
+  y: number;
 }
 
 export function CalendarPage() {
@@ -30,6 +30,7 @@ export function CalendarPage() {
   const [viewMode, setViewModeState] = useState<ViewMode>(loadViewMode);
   const [weekStart, setWeekStart] = useState(() => getWeekStart(selectedDate ?? new Date()));
   const [monthStart, setMonthStart] = useState(() => getMonthStart(selectedDate ?? new Date()));
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   function setViewMode(mode: ViewMode) {
     setViewModeState(mode);
@@ -38,7 +39,6 @@ export function CalendarPage() {
 
   const {
     units,
-    sessions,
     getSessionForDate,
     createUnit,
     createSession,
@@ -54,20 +54,6 @@ export function CalendarPage() {
   } = useAppData();
 
   const selectedSession = selectedDate ? getSessionForDate(toISODate(selectedDate)) : undefined;
-
-  const { weekCount, monthCount } = useMemo(() => {
-    const now = new Date();
-    const thisWeekStart = toISODate(getWeekStart(now));
-    const weekEnd = new Date(getWeekStart(now));
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    const thisWeekEnd = toISODate(weekEnd);
-    const thisMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
-    return {
-      weekCount: sessions.filter((s) => s.date >= thisWeekStart && s.date <= thisWeekEnd).length,
-      monthCount: sessions.filter((s) => s.date.startsWith(thisMonthPrefix)).length,
-    };
-  }, [sessions]);
 
   function openDay(date: Date) {
     navigate(`/day/${toISODate(date)}`);
@@ -88,24 +74,23 @@ export function CalendarPage() {
     if (unitId) createSession(toISODate(selectedDate), unitId);
   }
 
-  function handleLongPressDelete(date: Date) {
-    const session = getSessionForDate(toISODate(date));
-    if (!session) return;
-    if (window.confirm('Diese Einheit für den Tag wirklich löschen? Alle erfassten Sätze gehen verloren.')) {
-      deleteSession(session.id);
-    }
+  function handleDayLongPress(date: Date, x: number, y: number) {
+    if (!getSessionForDate(toISODate(date))) return;
+    setContextMenu({ date, x, y });
+  }
+
+  function handleDeleteFromContextMenu() {
+    if (!contextMenu) return;
+    const session = getSessionForDate(toISODate(contextMenu.date));
+    if (session) deleteSession(session.id);
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
+    <div className="flex h-[100dvh] flex-col overflow-hidden bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
       <Header />
 
-      <main className={`mx-auto w-full flex-1 ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
-        <p className="mb-4 text-xs text-neutral-500">
-          {greeting()} — {weekCount}x diese Woche · {monthCount}x diesen Monat
-        </p>
-
-        <div className="mb-4 flex justify-center">
+      <main className={`mx-auto flex w-full min-h-0 flex-1 flex-col ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+        <div className="mb-3 flex shrink-0 justify-center">
           <div className="inline-flex rounded-lg border border-neutral-800 bg-neutral-900 p-1 light:border-neutral-200 light:bg-neutral-100">
             <button
               onClick={() => setViewMode('week')}
@@ -130,30 +115,41 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {viewMode === 'week' ? (
-          <WeekCalendar
-            weekStart={weekStart}
-            onWeekStartChange={setWeekStart}
-            units={units}
-            getSessionForDate={getSessionForDate}
-            onDayClick={openDay}
-            onDayLongPress={handleLongPressDelete}
-          />
-        ) : (
-          <MonthCalendar
-            monthStart={monthStart}
-            onMonthStartChange={setMonthStart}
-            units={units}
-            getSessionForDate={getSessionForDate}
-            onDayClick={openDay}
-            onDayLongPress={handleLongPressDelete}
-          />
-        )}
+        <div className="min-h-0 flex-1 pb-3">
+          {viewMode === 'week' ? (
+            <WeekCalendar
+              weekStart={weekStart}
+              onWeekStartChange={setWeekStart}
+              units={units}
+              getSessionForDate={getSessionForDate}
+              onDayClick={openDay}
+              onDayLongPress={handleDayLongPress}
+            />
+          ) : (
+            <MonthCalendar
+              monthStart={monthStart}
+              onMonthStartChange={setMonthStart}
+              units={units}
+              getSessionForDate={getSessionForDate}
+              onDayClick={openDay}
+              onDayLongPress={handleDayLongPress}
+            />
+          )}
+        </div>
       </main>
 
-      <footer className="mx-auto mt-10 w-full max-w-5xl border-t border-neutral-900 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center light:border-neutral-200">
+      <footer className="mx-auto w-full shrink-0 max-w-5xl border-t border-neutral-900 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] text-center light:border-neutral-200">
         <p className="text-xs text-neutral-700 light:text-neutral-400">Gym Tracker · lokal auf deinem Gerät gespeichert</p>
       </footer>
+
+      {contextMenu && (
+        <DayContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onDelete={handleDeleteFromContextMenu}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
 
       {selectedDate && (
         <SessionModal
