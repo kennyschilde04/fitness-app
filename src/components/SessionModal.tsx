@@ -138,7 +138,7 @@ export function SessionModal({
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-5">
               {session.exercises.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   Noch keine Übungen für diese Einheit. Füge unten deine erste Übung hinzu.

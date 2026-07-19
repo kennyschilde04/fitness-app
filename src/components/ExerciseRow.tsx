@@ -35,7 +35,7 @@ export function ExerciseRow({
   return (
     <div
       id={`exercise-${exercise.exerciseId}`}
-      className="scroll-mt-4 rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 light:border-neutral-200 light:bg-white"
+      className="scroll-mt-4 rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-md light:border-neutral-300 light:bg-white light:shadow-sm"
     >
       <div className="mb-3 flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold text-neutral-100 light:text-neutral-900">{exercise.name}</h3>

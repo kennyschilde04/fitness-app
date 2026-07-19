@@ -49,10 +49,12 @@ export function UnitPicker({ units, onSelect, onCreateUnit, onDeleteUnit }: Unit
                 </button>
                 <button
                   onClick={(e) => handleDeleteUnit(unit, e)}
-                  className="absolute -right-2 -top-2 z-10 rounded-full border border-red-500/30 bg-red-950 p-1 text-xs text-red-300/90 shadow-md transition-transform active:scale-90 hover:bg-red-900 hover:text-red-200"
+                  className="absolute -right-2 -top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-red-500/30 bg-red-950 text-red-300/90 shadow-md transition-transform active:scale-90 hover:bg-red-900 hover:text-red-200"
                   aria-label={`Einheit ${unit.name} löschen`}
                 >
-                  ✕
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" className="h-3 w-3">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
                 </button>
               </div>
             );
