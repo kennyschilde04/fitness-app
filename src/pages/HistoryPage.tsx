@@ -1,94 +1,300 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Header } from '../components/Header';
 import type { ExerciseHistoryEntry } from '../state/useAppData';
 import { useAppData } from '../state/useAppData';
+import type { Session, SetEntry, UnitDef } from '../types';
 import { getUnitColor } from '../types';
+import { formatDayMonth, fromISODate, getWeekDays, getWeekStart, toISODate } from '../utils/date';
 import { formatSet } from '../utils/format';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 const ALL_LIMIT = 1000;
 
-function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? entry.entries : entry.entries.slice(0, PAGE_SIZE);
-  const hiddenCount = entry.entries.length - PAGE_SIZE;
+function completedSets(session: Session): number {
+  return session.exercises.reduce(
+    (total, exercise) => total + exercise.sets.filter((set) => set.weight !== null || set.reps !== null).length,
+    0,
+  );
+}
 
+function setVolume(set: SetEntry): number {
+  return (set.weight ?? 0) * (set.reps ?? 0);
+}
+
+function sessionVolume(session: Session): number {
+  return session.exercises.reduce(
+    (total, exercise) => total + exercise.sets.reduce((sum, set) => sum + setVolume(set), 0),
+    0,
+  );
+}
+
+function formatVolume(value: number): string {
+  if (value >= 1000) return `${Math.round(value / 100) / 10}k kg`;
+  return `${Math.round(value)} kg`;
+}
+
+function latestSessionForUnit(sessions: Session[], unitId: string): Session | undefined {
+  return [...sessions].filter((session) => session.unitId === unitId).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+}
+
+function SetRows({ entries }: { entries: ExerciseHistoryEntry['entries'] }) {
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 light:border-neutral-200 light:bg-white">
-      <p className="mb-2 text-sm font-semibold text-neutral-100 light:text-neutral-900">{entry.name}</p>
-      <div className="flex flex-col gap-1">
-        {visible.map((sets, i) => (
-          <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+    <div className="flex flex-col gap-4">
+      {entries.map((sets, i) => (
+        <div key={i} className="app-soft-row">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs font-semibold">
             {sets.map((set, j) => (
-              <span key={j} className="text-neutral-400">
+              <span key={j} className="app-muted">
                 <span className="text-neutral-600">S{j + 1}</span> {formatSet(set)}
               </span>
             ))}
           </div>
-        ))}
-      </div>
-      {hiddenCount > 0 && (
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
-        >
-          {expanded ? 'Weniger anzeigen' : `Mehr anzeigen (${hiddenCount} weitere)`}
-        </button>
-      )}
+        </div>
+      ))}
     </div>
+  );
+}
+
+function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
+  const [open, setOpen] = useState(false);
+  const visible = entry.entries.slice(0, PAGE_SIZE);
+  const hiddenCount = entry.entries.length - PAGE_SIZE;
+  const latest = entry.entries[0] ?? [];
+  const latestVolume = latest.reduce((total, set) => total + setVolume(set), 0);
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="app-card app-card-button app-card-spacious"
+      >
+        <div className="flex items-start justify-between gap-5">
+          <div>
+            <p className="text-lg font-black">{entry.name}</p>
+            <p className="app-muted mt-2 text-xs font-semibold">{entry.entries.length} Einträge</p>
+          </div>
+          <div className="app-stat-badge">
+            <p className="text-sm font-black text-lime-300 light:text-lime-700">{formatVolume(latestVolume)}</p>
+            <p className="app-muted text-[10px] font-bold uppercase">zuletzt</p>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <SetRows entries={visible} />
+        </div>
+
+        {hiddenCount > 0 && (
+          <p className="app-muted mt-5 text-xs font-bold">
+            Alle {entry.entries.length} Einträge anzeigen
+          </p>
+        )}
+      </button>
+
+      {open && (
+        <div
+          className="app-sheet-backdrop"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="app-bottom-sheet"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setOpen(false)}
+              className="app-sheet-handle"
+              aria-label="Detail schließen"
+            />
+            <div className="flex shrink-0 items-start justify-between gap-4">
+              <div>
+                <p className="app-eyebrow">Übungsverlauf</p>
+                <h2 className="mt-1 text-3xl font-black">{entry.name}</h2>
+                <p className="app-muted mt-2 text-sm font-semibold">{entry.entries.length} Einträge gesamt</p>
+              </div>
+              <div className="app-stat-badge">
+                <p className="text-sm font-black text-lime-300 light:text-lime-700">{formatVolume(latestVolume)}</p>
+                <p className="app-muted text-[10px] font-bold uppercase">zuletzt</p>
+              </div>
+            </div>
+            <div className="mt-7 min-h-0 flex-1 overflow-y-auto">
+              <SetRows entries={entry.entries} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function UnitPill({
+  unit,
+  active,
+  onClick,
+}: {
+  unit: UnitDef;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const colors = getUnitColor(unit);
+  return (
+    <button
+      onClick={onClick}
+      className={`app-chip ${
+        active
+          ? `${colors.bg} ${colors.border} ${colors.text}`
+          : ''
+      }`}
+    >
+      {unit.name}
+    </button>
   );
 }
 
 export function HistoryPage() {
   const { unitId } = useParams();
   const navigate = useNavigate();
-  const { units, getUnitExerciseHistory } = useAppData();
+  const { units, sessions, getUnitExerciseHistory } = useAppData();
 
   const sortedUnits = [...units].sort((a, b) => a.order - b.order);
+  const sortedSessions = [...sessions].sort((a, b) => (a.date < b.date ? 1 : -1));
   const activeUnit = (unitId && sortedUnits.find((u) => u.id === unitId)) || sortedUnits[0];
   const exerciseHistory = activeUnit ? getUnitExerciseHistory(activeUnit.id, ALL_LIMIT) : [];
+  const activeUnitSessions = activeUnit ? sortedSessions.filter((session) => session.unitId === activeUnit.id) : [];
+  const latestSession = activeUnit ? latestSessionForUnit(sortedSessions, activeUnit.id) : undefined;
+  const totalSets = sortedSessions.reduce((total, session) => total + completedSets(session), 0);
+  const totalVolume = sortedSessions.reduce((total, session) => total + sessionVolume(session), 0);
+  const weekDays = getWeekDays(getWeekStart(new Date()));
+  const currentWeekSessions = weekDays
+    .map((day) => sortedSessions.find((session) => session.date === toISODate(day)))
+    .filter((session): session is Session => Boolean(session));
 
   return (
-    <div className="flex h-[100svh] flex-col overflow-hidden bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
-      <Header backLabel="Zurück" title="Insight" />
+    <div className="app-screen">
+      <main className="app-scroll">
+        <button
+          onClick={() => navigate('/')}
+          className="app-icon-button mb-8"
+          aria-label="Zurück"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
 
-      <main className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto pb-12">
-        {sortedUnits.length === 0 ? (
-          <p className="text-sm text-neutral-500">Noch keine Einheiten angelegt.</p>
-        ) : (
-          <>
-            <div className="mb-6 flex gap-2 overflow-x-auto pb-1">
-              {sortedUnits.map((unit) => {
-                const colors = getUnitColor(unit);
-                const active = unit.id === activeUnit?.id;
+        <header>
+          <p className="app-eyebrow">Insights</p>
+          <h1 className="mt-1 text-4xl font-black leading-none">Dein Fortschritt</h1>
+          <p className="app-muted mt-4 text-sm font-semibold">
+            {latestSession ? `Letztes Training: ${formatDayMonth(fromISODate(latestSession.date))}` : 'Noch keine Trainingsdaten'}
+          </p>
+        </header>
+
+        <section className="mt-8 grid grid-cols-3 gap-3">
+          <div className="app-card p-5">
+            <p className="text-3xl font-black">{sortedSessions.length}</p>
+            <p className="app-muted mt-1 text-xs font-bold">Trainings</p>
+          </div>
+          <div className="app-card p-5">
+            <p className="text-3xl font-black">{totalSets}</p>
+            <p className="app-muted mt-1 text-xs font-bold">Sätze</p>
+          </div>
+          <div className="app-card p-5">
+            <p className="text-3xl font-black text-lime-300 light:text-lime-700">{currentWeekSessions.length}/7</p>
+            <p className="app-muted mt-1 text-xs font-bold">Woche</p>
+          </div>
+        </section>
+
+        <section className="app-card mt-4 p-5">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-sm font-black">Volumen</p>
+              <p className="app-muted mt-1 text-xs font-semibold">Alle erfassten Sätze</p>
+            </div>
+            <p className="text-2xl font-black text-lime-300 light:text-lime-700">{formatVolume(totalVolume)}</p>
+          </div>
+          <div className="app-muted mt-3 flex items-center justify-between text-[10px] font-bold uppercase">
+            <span>älter</span>
+            <span>letzte Trainings</span>
+            <span>neu</span>
+          </div>
+          <div className="mt-5 flex h-20 items-end gap-3">
+            {sortedSessions.slice(0, 8).reverse().map((session) => {
+              const unit = sortedUnits.find((item) => item.id === session.unitId);
+              const colors = unit ? getUnitColor(unit) : null;
+              const height = Math.max(18, Math.min(64, sessionVolume(session) / 90));
+              return (
+                <div key={session.id} className="flex flex-1 flex-col items-center gap-2">
+                  <div className={`w-full rounded-full ${colors?.bg ?? 'bg-neutral-800'}`} style={{ height }} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {sortedUnits.length > 0 && (
+          <section className="mt-9">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-sm font-black">Split</p>
+              <p className="app-muted text-xs font-bold">{activeUnitSessions.length} Einheiten</p>
+            </div>
+            <div className="app-x-scroll">
+              {sortedUnits.map((unit) => (
+                <UnitPill
+                  key={unit.id}
+                  unit={unit}
+                  active={unit.id === activeUnit?.id}
+                  onClick={() => navigate(`/history/${unit.id}`, { replace: true })}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {activeUnit && (
+          <section className="app-card mt-6 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="app-muted text-xs font-bold uppercase">Aktiver Split</p>
+                <p className={`mt-1 text-2xl font-black ${getUnitColor(activeUnit).text}`}>{activeUnit.name}</p>
+              </div>
+              <div className="app-stat-badge">
+                <p className="text-lg font-black">{activeUnitSessions.length}</p>
+                <p className="app-muted text-[10px] font-bold uppercase">Sessions</p>
+              </div>
+            </div>
+            <div className="app-muted mt-6 flex items-center justify-between text-[10px] font-bold uppercase">
+              <span>Diese Woche</span>
+              <span>Farbe = Split</span>
+            </div>
+            <div className="mt-3 grid grid-cols-7 gap-2">
+              {weekDays.map((day) => {
+                const session = sortedSessions.find((item) => item.date === toISODate(day));
+                const unit = session ? sortedUnits.find((item) => item.id === session.unitId) : undefined;
+                const colors = unit ? getUnitColor(unit) : null;
                 return (
-                  <button
-                    key={unit.id}
-                    onClick={() => navigate(`/history/${unit.id}`, { replace: true })}
-                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-150 active:scale-95 ${
-                      active
-                        ? `${colors.bg} ${colors.border} ${colors.text}`
-                        : 'border-neutral-800 text-neutral-500 hover:text-neutral-300 light:border-neutral-300'
-                    }`}
-                  >
-                    {unit.name}
-                  </button>
+                  <span
+                    key={toISODate(day)}
+                    className={`h-2 rounded-full ${colors ? colors.bg : 'bg-neutral-800/80 light:bg-neutral-200'}`}
+                  />
                 );
               })}
             </div>
-
-            {exerciseHistory.length === 0 ? (
-              <p className="text-xs italic text-neutral-600">Noch keine Einheiten erfasst.</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {exerciseHistory.map((entry) => (
-                  <ExerciseHistoryCard key={entry.exerciseId} entry={entry} />
-                ))}
-              </div>
-            )}
-          </>
+          </section>
         )}
+
+        <section className="mt-16">
+          <p className="mb-7 text-lg font-black">Übungsverlauf</p>
+          {exerciseHistory.length === 0 ? (
+            <p className="text-sm font-semibold text-neutral-500">Noch keine Einheiten erfasst.</p>
+          ) : (
+            <div className="flex flex-col gap-10">
+              {exerciseHistory.map((entry) => (
+                <div key={entry.exerciseId} className="px-1">
+                  <ExerciseHistoryCard entry={entry} />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

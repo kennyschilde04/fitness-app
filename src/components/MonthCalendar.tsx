@@ -25,10 +25,10 @@ export function MonthCalendar({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col">
-      <div className="mb-2 flex shrink-0 items-center justify-between">
+      <div className="mb-4 flex shrink-0 items-center justify-between">
         <button
           onClick={() => onMonthStartChange(addMonths(monthStart, -1))}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-white/[0.035] text-neutral-300 transition-transform active:scale-90 light:border-neutral-200 light:bg-white/60 light:text-neutral-600"
           aria-label="Vorheriger Monat"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -36,13 +36,13 @@ export function MonthCalendar({
           </svg>
         </button>
 
-        <span className="text-lg font-semibold text-neutral-100 light:text-neutral-900">
+        <span className="text-2xl font-black text-neutral-100 light:text-neutral-950">
           {formatMonthYear(monthStart)}
         </span>
 
         <button
           onClick={() => onMonthStartChange(addMonths(monthStart, 1))}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-800 text-neutral-300 transition-transform active:scale-90 hover:bg-neutral-800 light:border-neutral-300 light:text-neutral-600 light:hover:bg-neutral-100"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neutral-800 bg-white/[0.035] text-neutral-300 transition-transform active:scale-90 light:border-neutral-200 light:bg-white/60 light:text-neutral-600"
           aria-label="Nächster Monat"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
@@ -51,30 +51,32 @@ export function MonthCalendar({
         </button>
       </div>
 
-      <div className="mb-1.5 grid shrink-0 grid-cols-7 gap-1 sm:gap-1.5">
-        {WEEKDAY_HEADERS.map((d) => (
-          <span key={d} className="text-center text-xs font-medium uppercase tracking-wide text-neutral-500">
-            {d}
-          </span>
-        ))}
-      </div>
+      <section className="min-h-0 overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950/50 p-3 shadow-2xl shadow-black/20 light:border-neutral-200 light:bg-white/65 light:shadow-neutral-200/50">
+        <div className="mb-2 grid shrink-0 grid-cols-7">
+          {WEEKDAY_HEADERS.map((d) => (
+            <span key={d} className="py-2 text-center text-[11px] font-black uppercase text-neutral-500">
+              {d}
+            </span>
+          ))}
+        </div>
 
-      <div className="grid min-h-0 flex-1 auto-rows-fr grid-cols-7 gap-1 sm:gap-1.5">
-        {days.map((date) => {
-          const session = getSessionForDate(toISODate(date));
-          const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
-          return (
-            <MonthDayCell
-              key={toISODate(date)}
-              date={date}
-              unit={unit}
-              isCurrentMonth={date.getMonth() === monthStart.getMonth()}
-              onClick={() => onDayClick(date)}
-              onLongPress={(x, y) => onDayLongPress?.(date, x, y)}
-            />
-          );
-        })}
-      </div>
+        <div className="grid min-h-0 grid-cols-7 gap-y-2">
+          {days.map((date) => {
+            const session = getSessionForDate(toISODate(date));
+            const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
+            return (
+              <MonthDayCell
+                key={toISODate(date)}
+                date={date}
+                unit={unit}
+                isCurrentMonth={date.getMonth() === monthStart.getMonth()}
+                onClick={() => onDayClick(date)}
+                onLongPress={(x, y) => onDayLongPress?.(date, x, y)}
+              />
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

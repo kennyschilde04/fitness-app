@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light';
 
 const THEME_KEY = 'gym-tracker-theme';
 
@@ -20,5 +20,5 @@ export function useTheme() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
   }, []);
 
-  return { theme, toggleTheme };
+  return { theme, setTheme, toggleTheme };
 }

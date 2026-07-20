@@ -26,20 +26,25 @@ export function MonthDayCell({ date, unit, isCurrentMonth, onClick, onLongPress 
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`flex h-full min-h-11 flex-col items-center gap-1 rounded-lg border p-1.5 transition-all duration-150 active:scale-95 sm:p-2
-        ${colors ? `${colors.bg} ${colors.border}` : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700 light:bg-white light:hover:border-neutral-300'}
-        ${isCurrentMonth ? '' : 'opacity-40'}
+      className={`flex h-[4.65rem] flex-col items-center justify-start rounded-2xl px-0.5 py-1.5 transition-all duration-150 active:scale-95
+        ${isCurrentMonth ? '' : 'opacity-30'}
       `}
     >
-      <span className={`text-sm font-medium sm:text-lg ${today ? 'text-red-400' : 'text-neutral-200 light:text-neutral-700'}`}>
+      <span
+        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${
+          today
+            ? 'bg-lime-300 text-neutral-950 light:bg-lime-500 light:text-white'
+            : 'text-neutral-100 light:text-neutral-900'
+        }`}
+      >
         {date.getDate()}
       </span>
       {unit && (
-        <span
-          className={`w-full truncate text-center text-[9px] font-semibold leading-tight sm:whitespace-normal sm:break-words sm:text-sm ${colors!.text}`}
-        >
-          {unit.name}
-        </span>
+        <div className={`mt-1.5 w-full rounded-full border px-1.5 py-1 ${colors!.bg} ${colors!.border}`}>
+          <span className={`block truncate text-center text-[9px] font-black leading-none ${colors!.text}`}>
+            {unit.name}
+          </span>
+        </div>
       )}
     </button>
   );
