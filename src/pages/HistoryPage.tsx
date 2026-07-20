@@ -6,37 +6,69 @@ import { useAppData } from '../state/useAppData';
 import { getUnitColor } from '../types';
 import { formatSet } from '../utils/format';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 const ALL_LIMIT = 1000;
 
+function SetRows({ entries }: { entries: ExerciseHistoryEntry['entries'] }) {
+  return (
+    <div className="flex flex-col gap-1">
+      {entries.map((sets, i) => (
+        <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
+          {sets.map((set, j) => (
+            <span key={j} className="text-neutral-400">
+              <span className="text-neutral-600">S{j + 1}</span> {formatSet(set)}
+            </span>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? entry.entries : entry.entries.slice(0, PAGE_SIZE);
+  const [open, setOpen] = useState(false);
+  const preview = entry.entries.slice(0, PAGE_SIZE);
   const hiddenCount = entry.entries.length - PAGE_SIZE;
 
   return (
-    <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 light:border-neutral-200 light:bg-white">
-      <p className="mb-2 text-sm font-semibold text-neutral-100 light:text-neutral-900">{entry.name}</p>
-      <div className="flex flex-col gap-1">
-        {visible.map((sets, i) => (
-          <div key={i} className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-            {sets.map((set, j) => (
-              <span key={j} className="text-neutral-400">
-                <span className="text-neutral-600">S{j + 1}</span> {formatSet(set)}
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-      {hiddenCount > 0 && (
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="mt-2 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 text-left transition-transform active:scale-[0.99] light:border-neutral-200 light:bg-white"
+      >
+        <p className="mb-2 text-sm font-semibold text-neutral-100 light:text-neutral-900">{entry.name}</p>
+        <SetRows entries={preview} />
+        {hiddenCount > 0 && (
+          <p className="mt-2 text-xs text-neutral-500">Alle {entry.entries.length} anzeigen →</p>
+        )}
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={() => setOpen(false)}
         >
-          {expanded ? 'Weniger anzeigen' : `Mehr anzeigen (${hiddenCount} weitere)`}
-        </button>
+          <div
+            className="flex max-h-[80vh] w-full flex-col rounded-t-2xl bg-neutral-950 shadow-2xl sm:max-w-lg sm:rounded-2xl sm:border sm:border-neutral-800 light:bg-white light:sm:border-neutral-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-neutral-800 px-4 py-4 light:border-neutral-200">
+              <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{entry.name}</p>
+              <button
+                onClick={() => setOpen(false)}
+                className="rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
+                aria-label="Schließen"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <SetRows entries={entry.entries} />
+            </div>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
 
