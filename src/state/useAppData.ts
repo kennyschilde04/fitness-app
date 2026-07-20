@@ -38,16 +38,23 @@ export function useAppData() {
     [data.sessions],
   );
 
-  const createUnit = useCallback((name: string): string => {
+  const createUnit = useCallback((name: string, colorIndex?: number): string => {
     const trimmed = name.trim();
     if (!trimmed) return '';
     const id = newId();
     setData((prev) => {
       const maxOrder = prev.units.reduce((max, u) => Math.max(max, u.order), -1);
-      const unit: UnitDef = { id, name: trimmed, colorIndex: prev.units.length, order: maxOrder + 1 };
+      const unit: UnitDef = { id, name: trimmed, colorIndex: colorIndex ?? prev.units.length, order: maxOrder + 1 };
       return { ...prev, units: [...prev.units, unit] };
     });
     return id;
+  }, []);
+
+  const updateUnitColor = useCallback((unitId: string, colorIndex: number) => {
+    setData((prev) => ({
+      ...prev,
+      units: prev.units.map((unit) => (unit.id === unitId ? { ...unit, colorIndex } : unit)),
+    }));
   }, []);
 
   const createSession = useCallback((date: string, unitId: string) => {
@@ -290,6 +297,7 @@ export function useAppData() {
     sessions: data.sessions,
     getSessionForDate,
     createUnit,
+    updateUnitColor,
     createSession,
     addSet,
     removeSet,

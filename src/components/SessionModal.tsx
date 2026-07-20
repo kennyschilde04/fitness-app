@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { PreviousSessionEntry } from '../state/useAppData';
 import type { Session, SetEntry, UnitDef } from '../types';
-import { getUnitColor } from '../types';
+import { getUnitColor, UNIT_COLOR_PALETTE } from '../types';
 import { formatDayMonth, weekdayLabel } from '../utils/date';
 import { ExerciseRow } from './ExerciseRow';
 import { UnitPicker } from './UnitPicker';
@@ -12,7 +12,8 @@ interface SessionModalProps {
   units: UnitDef[];
   onClose: () => void;
   onSelectUnit: (unitId: string) => void;
-  onCreateUnit: (name: string) => void;
+  onCreateUnit: (name: string, colorIndex?: number) => void;
+  onUpdateUnitColor: (unitId: string, colorIndex: number) => void;
   onDeleteUnit: (unitId: string) => void;
   onDeleteSession: () => void;
   onSetChange: (exerciseId: string, setIndex: number, patch: Partial<SetEntry>) => void;
@@ -22,7 +23,6 @@ interface SessionModalProps {
   onAddExercise: (name: string) => void;
   onRemoveExercise: (exerciseId: string) => void;
   getPreviousSessions: (unitId: string, exerciseId: string) => PreviousSessionEntry[];
-  onViewHistory: (unitId: string) => void;
 }
 
 function jumpToExercise(exerciseId: string) {
@@ -36,6 +36,7 @@ export function SessionModal({
   onClose,
   onSelectUnit,
   onCreateUnit,
+  onUpdateUnitColor,
   onDeleteUnit,
   onDeleteSession,
   onSetChange,
@@ -45,7 +46,6 @@ export function SessionModal({
   onAddExercise,
   onRemoveExercise,
   getPreviousSessions,
-  onViewHistory,
 }: SessionModalProps) {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [visible, setVisible] = useState(false);
@@ -77,45 +77,41 @@ export function SessionModal({
       onClick={onClose}
     >
       <div
-        className={`flex h-[100dvh] w-full flex-col bg-neutral-950 shadow-2xl transition-transform duration-300 ease-out sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-neutral-800 light:bg-white light:sm:border-neutral-200 ${
+        className={`flex h-[100dvh] w-full flex-col overflow-hidden bg-neutral-950 shadow-2xl transition-transform duration-300 ease-out sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-neutral-800 light:bg-white light:sm:border-neutral-200 ${
           visible ? 'translate-y-0' : 'translate-y-6'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 flex-col border-b border-neutral-800 px-4 py-5 light:border-neutral-200 sm:px-6">
+        <div className={`flex shrink-0 flex-col border-b border-neutral-900 px-5 pb-5 pt-[max(1.5rem,calc(env(safe-area-inset-top)+0.75rem))] light:border-neutral-200 sm:px-6 ${unit ? `rounded-b-[2rem] ${colors!.bg}` : ''}`}>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
-              <div className={unit ? `-mx-3 -my-1.5 rounded-xl px-3 py-1.5 ${colors!.bg}` : undefined}>
-                <p className="text-xs uppercase tracking-wide text-neutral-500">
-                  {unit ? `${weekdayLabel(date)} · ${formatDayMonth(date)}` : weekdayLabel(date)}
-                </p>
-                {unit ? (
-                  <p className={`mt-0.5 text-2xl font-bold leading-tight ${colors!.text}`}>{unit.name}</p>
-                ) : (
-                  <p className="text-lg font-semibold text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
-                )}
-              </div>
-
-              {unit && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => onViewHistory(unit.id)}
-                    className="rounded-md px-2 py-1 text-xs text-neutral-500 transition-transform active:scale-95 hover:text-neutral-300"
-                  >
-                    Insight
-                  </button>
-                  <button
-                    onClick={handleDeleteSession}
-                    className="rounded-md px-2 py-1 text-xs text-red-400/80 transition-transform active:scale-95 hover:text-red-300"
-                  >
-                    Löschen
-                  </button>
-                </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                {unit ? `${weekdayLabel(date)} · ${formatDayMonth(date)}` : weekdayLabel(date)}
+              </p>
+              {unit ? (
+                <p className={`mt-1 truncate text-3xl font-black leading-none ${colors!.text}`}>{unit.name}</p>
+              ) : (
+                <p className="mt-1 text-3xl font-black leading-none text-neutral-100 light:text-neutral-900">{formatDayMonth(date)}</p>
               )}
             </div>
+            {unit && (
+              <button
+                onClick={handleDeleteSession}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10 text-red-300 transition-transform active:scale-90"
+                aria-label="Training löschen"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M6.5 6l1 14h9l1-14" />
+                  <path d="M10 11v5" />
+                  <path d="M14 11v5" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="shrink-0 rounded-full p-2 text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-xl text-neutral-500 transition-transform active:scale-90 hover:text-neutral-200 light:border-neutral-200 light:bg-white light:text-neutral-500"
               aria-label="Schließen"
             >
               ✕
@@ -145,15 +141,44 @@ export function SessionModal({
           <div className="flex-1 overflow-y-auto p-5 sm:p-6">
             <div className="flex flex-col gap-6">
               {session.exercises.length === 0 && (
-                <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-neutral-700 bg-neutral-900/40 px-6 py-10 text-center light:border-neutral-300 light:bg-neutral-50">
-                  <span className="text-3xl">✅</span>
-                  <div>
-                    <p className="text-base font-semibold text-neutral-100 light:text-neutral-900">
-                      {unit ? `„${unit.name}“ wurde angelegt` : 'Einheit wurde angelegt'}
+                <div className={`overflow-hidden rounded-[2rem] border ${colors ? colors.border : 'border-neutral-800'} bg-white/[0.035] light:bg-white/70`}>
+                  <div className={`h-2 ${colors ? colors.bg : 'bg-neutral-800'}`} />
+                  <div className="px-6 py-8">
+                    <p className="text-xs font-black uppercase tracking-wide text-neutral-500">Bereit</p>
+                    <p className={`mt-3 text-3xl font-black leading-none ${colors ? colors.text : 'text-neutral-100 light:text-neutral-950'}`}>
+                      {unit ? unit.name : 'Einheit'}
                     </p>
-                    <p className="mt-1 text-sm text-neutral-500 light:text-neutral-600">
-                      Jetzt deine erste Übung unten hinzufügen, um loszulegen.
+                    <p className="mt-4 max-w-sm text-sm font-semibold leading-6 text-neutral-500 light:text-neutral-600">
+                      Lege jetzt die erste Übung an. Danach kannst du Sätze, Gewicht, Wiederholungen und Notizen erfassen.
                     </p>
+                    {unit && (
+                      <div className="mt-6">
+                        <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Farbe</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {UNIT_COLOR_PALETTE.map((color, index) => (
+                            <button
+                              key={color.text}
+                              type="button"
+                              onClick={() => onUpdateUnitColor(unit.id, index)}
+                              className={`flex h-12 items-center justify-center rounded-2xl border transition-transform active:scale-95 ${color.bg} ${color.border} ${
+                                unit.colorIndex === index ? `ring-2 ${color.ring} ring-offset-2 ring-offset-neutral-950 light:ring-offset-white` : ''
+                              }`}
+                              aria-label={`Farbe ${index + 1} auswählen`}
+                            >
+                              <span className={`h-5 w-5 rounded-full bg-current ${color.text}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-6 grid grid-cols-3 gap-3">
+                      {['Übungen', 'Sätze', 'Notizen'].map((label) => (
+                        <div key={label} className="rounded-2xl bg-neutral-950/50 px-3 py-4 light:bg-neutral-100">
+                          <p className="text-xl font-black text-neutral-100 light:text-neutral-950">0</p>
+                          <p className="mt-1 text-[11px] font-black uppercase text-neutral-500">{label}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -172,18 +197,19 @@ export function SessionModal({
               ))}
             </div>
 
-            <div className="mt-6 flex gap-2 pb-[env(safe-area-inset-bottom)]">
+            <div className="mt-6 flex gap-3 pb-[env(safe-area-inset-bottom)]">
               <input
                 type="text"
                 placeholder="Neue Übung hinzufügen…"
                 value={newExerciseName}
                 onChange={(e) => setNewExerciseName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAddExercise()}
-                className="flex-1 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-3 text-base text-neutral-100 placeholder:text-neutral-600 focus:border-neutral-400 focus:outline-none sm:py-2 sm:text-sm light:border-neutral-300 light:bg-neutral-50 light:text-neutral-900"
+                className="app-input app-input-wide flex-1"
               />
               <button
                 onClick={handleAddExercise}
-                className="shrink-0 rounded-lg border border-neutral-700 px-4 py-3 text-sm font-medium text-neutral-200 transition-transform active:scale-95 hover:bg-neutral-800 sm:py-2 light:border-neutral-300 light:text-neutral-700 light:hover:bg-neutral-100"
+                className="app-primary-button shrink-0 px-5 py-4 text-sm disabled:opacity-40"
+                disabled={newExerciseName.trim() === ''}
               >
                 Hinzufügen
               </button>

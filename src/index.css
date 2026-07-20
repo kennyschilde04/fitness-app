@@ -146,6 +146,91 @@ button {
   padding: 0.875rem 1.25rem;
 }
 
+.app-input {
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-strong);
+  color: var(--app-text);
+  font-weight: 800;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.app-input::placeholder {
+  color: color-mix(in srgb, var(--app-text-muted) 72%, transparent);
+}
+
+.app-input:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 22%, transparent);
+}
+
+.app-input-compact {
+  padding: 0.95rem 1rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.app-input-wide {
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+}
+
+.app-primary-button,
+.app-secondary-button,
+.app-danger-button {
+  border-radius: var(--app-radius-md);
+  font-weight: 900;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    opacity 150ms ease;
+}
+
+.app-primary-button {
+  background: var(--app-accent);
+  color: #0a0a0a;
+}
+
+.app-secondary-button {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text-soft);
+}
+
+.app-danger-button {
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.app-primary-button:active,
+.app-secondary-button:active,
+.app-danger-button:active {
+  transform: scale(0.96);
+}
+
+.app-primary-button:disabled,
+.app-secondary-button:disabled,
+.app-danger-button:disabled {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.app-exercise-card {
+  scroll-margin-top: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+  padding: 1.5rem;
+  box-shadow: var(--app-shadow-card);
+}
+
 .app-icon-button {
   display: flex;
   height: 2.75rem;

@@ -200,6 +200,7 @@ export function CalendarPage() {
     units,
     getSessionForDate,
     createUnit,
+    updateUnitColor,
     createSession,
     deleteUnit,
     deleteSession,
@@ -227,9 +228,9 @@ export function CalendarPage() {
     createSession(toISODate(selectedDate), unitId);
   }
 
-  function handleCreateUnit(name: string) {
+  function handleCreateUnit(name: string, colorIndex?: number) {
     if (!selectedDate) return;
-    const unitId = createUnit(name);
+    const unitId = createUnit(name, colorIndex);
     if (unitId) createSession(toISODate(selectedDate), unitId);
   }
 
@@ -382,6 +383,7 @@ export function CalendarPage() {
           onClose={closeDay}
           onSelectUnit={handleSelectUnit}
           onCreateUnit={handleCreateUnit}
+          onUpdateUnitColor={updateUnitColor}
           onDeleteUnit={deleteUnit}
           onDeleteSession={() => selectedSession && deleteSession(selectedSession.id)}
           onSetChange={(exerciseId, setIndex, patch) =>
@@ -399,7 +401,6 @@ export function CalendarPage() {
           getPreviousSessions={(unitId, exerciseId) =>
             selectedSession ? getPreviousSessions(unitId, exerciseId, selectedSession.id) : []
           }
-          onViewHistory={(unitId) => navigate(`/history/${unitId}`)}
         />
       )}
     </div>
