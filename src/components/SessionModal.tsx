@@ -179,6 +179,12 @@ export function SessionModal({
                         </div>
                       ))}
                     </div>
+                    <button
+                      onClick={onClose}
+                      className="app-primary-button mt-6 w-full px-5 py-4 text-sm"
+                    >
+                      Split speichern
+                    </button>
                   </div>
                 </div>
               )}

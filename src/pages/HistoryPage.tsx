@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type { ExerciseHistoryEntry } from '../state/useAppData';
 import { useAppData } from '../state/useAppData';
 import type { Session, SetEntry, UnitDef } from '../types';
-import { getUnitColor } from '../types';
+import { getUnitColor, UNIT_COLOR_PALETTE } from '../types';
 import {
   formatDayMonth,
   formatMonthYear,
@@ -273,17 +273,227 @@ function UnitPill({
   );
 }
 
+function AddSplitSheet({
+  initialColorIndex,
+  onCreate,
+  onClose,
+}: {
+  initialColorIndex: number;
+  onCreate: (name: string, colorIndex: number) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [colorIndex, setColorIndex] = useState(initialColorIndex);
+
+  function handleCreate() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onCreate(trimmed, colorIndex);
+  }
+
+  return (
+    <div className="app-sheet-backdrop" onClick={onClose}>
+      <div className="app-bottom-sheet" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="app-sheet-handle" aria-label="Split anlegen schließen" />
+        <div>
+          <p className="app-eyebrow">Neuer Split</p>
+          <h2 className="mt-1 text-3xl font-black">Split anlegen</h2>
+          <p className="app-muted mt-2 text-sm font-semibold">Name und Farbe wählen, dann speichern.</p>
+        </div>
+
+        <div className="mt-7">
+          <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Name</p>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && handleCreate()}
+            placeholder="z.B. Push/Pull"
+            className="app-input app-input-wide w-full"
+            autoFocus
+          />
+        </div>
+
+        <div className="mt-6">
+          <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Farbe</p>
+          <div className="grid grid-cols-4 gap-2">
+            {UNIT_COLOR_PALETTE.map((color, index) => (
+              <button
+                key={color.text}
+                type="button"
+                onClick={() => setColorIndex(index)}
+                className={`flex h-12 items-center justify-center rounded-2xl border transition-transform active:scale-95 ${color.bg} ${color.border} ${
+                  colorIndex === index ? `ring-2 ${color.ring} ring-offset-2 ring-offset-neutral-950 light:ring-offset-white` : ''
+                }`}
+                aria-label={`Farbe ${index + 1} auswählen`}
+              >
+                <span className={`h-5 w-5 rounded-full bg-current ${color.text}`} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={handleCreate}
+          disabled={name.trim() === ''}
+          className="app-primary-button mt-8 w-full px-5 py-4 text-sm"
+        >
+          Split speichern
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EditSplitSheet({
+  unit,
+  exercises,
+  onSave,
+  onAddExercise,
+  onRemoveExercise,
+  onClose,
+}: {
+  unit: UnitDef;
+  exercises: { id: string; name: string }[];
+  onSave: (unitId: string, name: string, colorIndex: number) => void;
+  onAddExercise: (unitId: string, name: string) => void;
+  onRemoveExercise: (unitId: string, exerciseId: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(unit.name);
+  const [colorIndex, setColorIndex] = useState(unit.colorIndex);
+  const [exerciseName, setExerciseName] = useState('');
+
+  function handleSave() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    onSave(unit.id, trimmed, colorIndex);
+  }
+
+  function handleAddExercise() {
+    const trimmed = exerciseName.trim();
+    if (!trimmed) return;
+    onAddExercise(unit.id, trimmed);
+    setExerciseName('');
+  }
+
+  return (
+    <div className="app-sheet-backdrop" onClick={onClose}>
+      <div className="app-bottom-sheet app-bottom-sheet-tall" onClick={(e) => e.stopPropagation()}>
+        <button onClick={onClose} className="app-sheet-handle" aria-label="Split bearbeiten schließen" />
+        <div>
+          <p className="app-eyebrow">Split bearbeiten</p>
+          <h2 className="mt-1 text-3xl font-black">{unit.name}</h2>
+          <p className="app-muted mt-2 text-sm font-semibold">Name und Farbe des Splits anpassen.</p>
+        </div>
+
+        <div className="mt-7">
+          <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Name</p>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && handleSave()}
+            className="app-input app-input-wide w-full"
+            autoFocus
+          />
+        </div>
+
+        <div className="mt-6">
+          <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Farbe</p>
+          <div className="grid grid-cols-4 gap-2">
+            {UNIT_COLOR_PALETTE.map((color, index) => (
+              <button
+                key={color.text}
+                type="button"
+                onClick={() => setColorIndex(index)}
+                className={`flex h-12 items-center justify-center rounded-2xl border transition-transform active:scale-95 ${color.bg} ${color.border} ${
+                  colorIndex === index ? `ring-2 ${color.ring} ring-offset-2 ring-offset-neutral-950 light:ring-offset-white` : ''
+                }`}
+                aria-label={`Farbe ${index + 1} auswählen`}
+              >
+                <span className={`h-5 w-5 rounded-full bg-current ${color.text}`} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-7 min-h-0 flex-1 overflow-y-auto">
+          <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Übungen</p>
+          {exercises.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {exercises.map((exercise) => (
+                <div key={exercise.id} className="app-soft-row flex items-center justify-between gap-3">
+                  <span className="text-sm font-black text-[var(--app-text)]">{exercise.name}</span>
+                  <button
+                    onClick={() => onRemoveExercise(unit.id, exercise.id)}
+                    className="app-danger-button px-3 py-2 text-xs"
+                    aria-label={`${exercise.name} entfernen`}
+                  >
+                    Entfernen
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="app-muted text-sm font-semibold">Noch keine Übungen in diesem Split.</p>
+          )}
+
+          <div className="mt-4 flex gap-3">
+            <input
+              value={exerciseName}
+              onChange={(event) => setExerciseName(event.target.value)}
+              onKeyDown={(event) => event.key === 'Enter' && handleAddExercise()}
+              placeholder="Neue Übung"
+              className="app-input app-input-wide flex-1"
+            />
+            <button
+              onClick={handleAddExercise}
+              disabled={exerciseName.trim() === ''}
+              className="app-primary-button shrink-0 px-4 py-3 text-sm"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={name.trim() === ''}
+          className="app-primary-button mt-8 w-full px-5 py-4 text-sm"
+        >
+          Änderungen speichern
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function HistoryPage() {
   const { unitId } = useParams();
   const navigate = useNavigate();
-  const { units, sessions, getUnitExerciseHistory } = useAppData();
+  const {
+    units,
+    exercises,
+    sessions,
+    createUnit,
+    updateUnit,
+    addExerciseToUnit,
+    removeExerciseFromUnitPlan,
+    getUnitExerciseHistory,
+  } = useAppData();
   const [activeTab, setActiveTab] = useState<InsightTab>('overview');
+  const [addSplitOpen, setAddSplitOpen] = useState(false);
+  const [editSplitOpen, setEditSplitOpen] = useState(false);
 
   const sortedUnits = [...units].sort((a, b) => a.order - b.order);
   const sortedSessions = [...sessions].sort((a, b) => (a.date < b.date ? 1 : -1));
   const activeUnit = (unitId && sortedUnits.find((u) => u.id === unitId)) || sortedUnits[0];
   const exerciseHistory = activeUnit ? getUnitExerciseHistory(activeUnit.id, ALL_LIMIT) : [];
   const activeUnitSessions = activeUnit ? sortedSessions.filter((session) => session.unitId === activeUnit.id) : [];
+  const activeUnitExercises = activeUnit
+    ? exercises.filter((exercise) => exercise.unitId === activeUnit.id).sort((a, b) => a.order - b.order)
+    : [];
+  const activeUnitSets = activeUnitSessions.reduce((total, session) => total + completedSets(session), 0);
+  const activeUnitVolume = activeUnitSessions.reduce((total, session) => total + sessionVolume(session), 0);
   const latestSession = activeUnit ? latestSessionForUnit(sortedSessions, activeUnit.id) : undefined;
   const totalSets = sortedSessions.reduce((total, session) => total + completedSets(session), 0);
   const totalVolume = sortedSessions.reduce((total, session) => total + sessionVolume(session), 0);
@@ -291,6 +501,19 @@ export function HistoryPage() {
   const currentWeekSessions = weekDays
     .map((day) => sortedSessions.find((session) => session.date === toISODate(day)))
     .filter((session): session is Session => Boolean(session));
+
+  function handleCreateSplit(name: string, colorIndex: number) {
+    const id = createUnit(name, colorIndex);
+    if (!id) return;
+    setAddSplitOpen(false);
+    setActiveTab('splits');
+    navigate(`/history/${id}`, { replace: true });
+  }
+
+  function handleSaveSplit(unitId: string, name: string, colorIndex: number) {
+    updateUnit(unitId, { name, colorIndex });
+    setEditSplitOpen(false);
+  }
 
   return (
     <div className="app-screen">
@@ -382,12 +605,23 @@ export function HistoryPage() {
 
         {activeTab === 'splits' && (
           <>
-            {sortedUnits.length > 0 && (
-              <section className="mt-9">
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-sm font-black">Split</p>
+            <section className="mt-9">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-sm font-black">Split</p>
+                <div className="flex items-center gap-3">
                   <p className="app-muted text-xs font-bold">{activeUnitSessions.length} Einheiten</p>
+                  <button
+                    onClick={() => setAddSplitOpen(true)}
+                    className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--app-border-strong)] bg-[var(--app-surface)] text-[var(--app-accent)] shadow-lg shadow-black/10 transition-transform active:scale-90"
+                    aria-label="Split hinzufügen"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" className="h-5 w-5">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                  </button>
                 </div>
+              </div>
+              {sortedUnits.length > 0 ? (
                 <div className="app-x-scroll">
                   {sortedUnits.map((unit) => (
                     <UnitPill
@@ -398,39 +632,97 @@ export function HistoryPage() {
                     />
                   ))}
                 </div>
-              </section>
-            )}
+              ) : (
+                <button onClick={() => setAddSplitOpen(true)} className="app-card app-card-button app-card-spacious">
+                  <p className="text-lg font-black">Ersten Split anlegen</p>
+                  <p className="app-muted mt-2 text-sm font-semibold">Erstelle deinen Trainingssplit und wähle eine Farbe.</p>
+                </button>
+              )}
+            </section>
 
             {activeUnit && (
-              <section className="app-card mt-6 p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="app-muted text-xs font-bold uppercase">Aktiver Split</p>
-                    <p className={`mt-1 text-2xl font-black ${getUnitColor(activeUnit).text}`}>{activeUnit.name}</p>
+              <>
+                <section className="app-card mt-6 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="app-muted text-xs font-bold uppercase">Aktiver Split</p>
+                      <p className={`mt-1 text-2xl font-black ${getUnitColor(activeUnit).text}`}>{activeUnit.name}</p>
+                    </div>
+                    <div className="app-stat-badge">
+                      <p className="text-lg font-black">{activeUnitSessions.length}</p>
+                      <p className="app-muted text-[10px] font-bold uppercase">Sessions</p>
+                    </div>
                   </div>
-                  <div className="app-stat-badge">
-                    <p className="text-lg font-black">{activeUnitSessions.length}</p>
-                    <p className="app-muted text-[10px] font-bold uppercase">Sessions</p>
+                  <button
+                    onClick={() => setEditSplitOpen(true)}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-strong)] px-4 py-3 text-sm font-black text-[var(--app-text-soft)] transition-transform active:scale-[0.98]"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
+                      <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.36a1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.08a1.7 1.7 0 0 0-1-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.64 15a1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.08a1.7 1.7 0 0 0 1.56-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.64a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.08a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.36 9c.25.6.84 1 1.56 1H21a2 2 0 1 1 0 4h-.08a1.7 1.7 0 0 0-1.52 1Z" />
+                    </svg>
+                    Split bearbeiten
+                  </button>
+                  <div className="app-muted mt-6 flex items-center justify-between text-[10px] font-bold uppercase">
+                    <span>Diese Woche</span>
+                    <span>Farbe = Split</span>
                   </div>
-                </div>
-                <div className="app-muted mt-6 flex items-center justify-between text-[10px] font-bold uppercase">
-                  <span>Diese Woche</span>
-                  <span>Farbe = Split</span>
-                </div>
-                <div className="mt-3 grid grid-cols-7 gap-2">
-                  {weekDays.map((day) => {
-                    const session = sortedSessions.find((item) => item.date === toISODate(day));
-                    const unit = session ? sortedUnits.find((item) => item.id === session.unitId) : undefined;
-                    const colors = unit ? getUnitColor(unit) : null;
-                    return (
-                      <span
-                        key={toISODate(day)}
-                        className={`h-2 rounded-full ${colors ? colors.bg : 'bg-neutral-800/80 light:bg-neutral-200'}`}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
+                  <div className="mt-3 grid grid-cols-7 gap-2">
+                    {weekDays.map((day) => {
+                      const session = sortedSessions.find((item) => item.date === toISODate(day));
+                      const unit = session ? sortedUnits.find((item) => item.id === session.unitId) : undefined;
+                      const colors = unit ? getUnitColor(unit) : null;
+                      return (
+                        <span
+                          key={toISODate(day)}
+                          className={`h-2 rounded-full ${colors ? colors.bg : 'bg-neutral-800/80 light:bg-neutral-200'}`}
+                        />
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="app-card mt-4 p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-black">Split-Insights</p>
+                      <p className="app-muted mt-1 text-xs font-semibold">
+                        {latestSession ? `Zuletzt: ${formatDayMonth(fromISODate(latestSession.date))}` : 'Noch keine Einheit'}
+                      </p>
+                    </div>
+                    <div className="app-stat-badge">
+                      <p className={`text-lg font-black ${getUnitColor(activeUnit).text}`}>{activeUnitExercises.length}</p>
+                      <p className="app-muted text-[10px] font-bold uppercase">Übungen</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="app-soft-row">
+                      <p className="text-xl font-black">{activeUnitSets}</p>
+                      <p className="app-muted mt-1 text-[11px] font-black uppercase">Sätze</p>
+                    </div>
+                    <div className="app-soft-row">
+                      <p className="text-xl font-black">{formatVolume(activeUnitVolume)}</p>
+                      <p className="app-muted mt-1 text-[11px] font-black uppercase">Volumen</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <p className="mb-3 text-xs font-black uppercase tracking-wide text-neutral-500">Übungen im Split</p>
+                    {activeUnitExercises.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {activeUnitExercises.map((exercise) => (
+                          <span key={exercise.id} className="rounded-full border border-[var(--app-border)] bg-[var(--app-surface-strong)] px-3 py-2 text-xs font-black text-[var(--app-text-soft)]">
+                            {exercise.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="app-muted text-sm font-semibold">Noch keine Übungen in diesem Split.</p>
+                    )}
+                  </div>
+                </section>
+              </>
             )}
           </>
         )}
@@ -452,6 +744,23 @@ export function HistoryPage() {
           </section>
         )}
       </main>
+      {addSplitOpen && (
+        <AddSplitSheet
+          initialColorIndex={sortedUnits.length % UNIT_COLOR_PALETTE.length}
+          onCreate={handleCreateSplit}
+          onClose={() => setAddSplitOpen(false)}
+        />
+      )}
+      {editSplitOpen && activeUnit && (
+        <EditSplitSheet
+          unit={activeUnit}
+          exercises={activeUnitExercises}
+          onSave={handleSaveSplit}
+          onAddExercise={addExerciseToUnit}
+          onRemoveExercise={removeExerciseFromUnitPlan}
+          onClose={() => setEditSplitOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -57,6 +57,21 @@ export function useAppData() {
     }));
   }, []);
 
+  const updateUnit = useCallback((unitId: string, patch: Partial<Pick<UnitDef, 'name' | 'colorIndex'>>) => {
+    setData((prev) => ({
+      ...prev,
+      units: prev.units.map((unit) => {
+        if (unit.id !== unitId) return unit;
+        const name = patch.name?.trim();
+        return {
+          ...unit,
+          ...(name ? { name } : {}),
+          ...(patch.colorIndex !== undefined ? { colorIndex: patch.colorIndex } : {}),
+        };
+      }),
+    }));
+  }, []);
+
   const createSession = useCallback((date: string, unitId: string) => {
     setData((prev) => {
       const existing = prev.sessions.find((s) => s.date === date);
@@ -205,6 +220,38 @@ export function useAppData() {
     });
   }, []);
 
+  const addExerciseToUnit = useCallback((unitId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setData((prev) => {
+      const unitExercises = prev.exercises.filter((e) => e.unitId === unitId);
+      const maxOrder = unitExercises.reduce((max, e) => Math.max(max, e.order), -1);
+      const newExercise: ExerciseDef = {
+        id: newId(),
+        unitId,
+        name: trimmed,
+        order: maxOrder + 1,
+      };
+
+      return {
+        ...prev,
+        exercises: [...prev.exercises, newExercise],
+      };
+    });
+  }, []);
+
+  const removeExerciseFromUnitPlan = useCallback((unitId: string, exerciseId: string) => {
+    setData((prev) => ({
+      ...prev,
+      exercises: prev.exercises.filter((exercise) => !(exercise.unitId === unitId && exercise.id === exerciseId)),
+      sessions: prev.sessions.map((session) =>
+        session.unitId === unitId
+          ? { ...session, exercises: session.exercises.filter((exercise) => exercise.exerciseId !== exerciseId) }
+          : session,
+      ),
+    }));
+  }, []);
+
   const removeExerciseFromUnit = useCallback((sessionId: string, exerciseId: string) => {
     setData((prev) => {
       const session = prev.sessions.find((s) => s.id === sessionId);
@@ -297,6 +344,7 @@ export function useAppData() {
     sessions: data.sessions,
     getSessionForDate,
     createUnit,
+    updateUnit,
     updateUnitColor,
     createSession,
     addSet,
@@ -306,7 +354,9 @@ export function useAppData() {
     updateSet,
     updateExerciseNote,
     addExerciseToSession,
+    addExerciseToUnit,
     removeExerciseFromUnit,
+    removeExerciseFromUnitPlan,
     getPreviousSessions,
     getRecentSessions,
     getUnitExerciseHistory,
