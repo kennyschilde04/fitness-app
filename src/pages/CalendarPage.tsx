@@ -264,7 +264,7 @@ export function CalendarPage() {
 
   return (
     <div className="app-screen">
-      <main className={`mx-auto flex w-full min-h-0 flex-1 flex-col overflow-y-auto ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+      <main className={`app-calendar-scroll flex flex-col ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
         <div className="mb-4 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="app-eyebrow">Trainings-Cockpit</p>
