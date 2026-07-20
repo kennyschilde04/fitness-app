@@ -4,6 +4,7 @@ export type Theme = 'dark' | 'purple' | 'light' | 'midnight' | 'ember' | 'mint' 
 
 const THEME_KEY = 'gym-tracker-theme';
 const THEMES: Theme[] = ['dark', 'purple', 'light', 'midnight', 'ember', 'mint', 'mono'];
+const LIGHT_THEMES: Theme[] = ['light', 'mint'];
 
 function loadTheme(): Theme {
   const stored = localStorage.getItem(THEME_KEY);
@@ -16,6 +17,7 @@ export function useTheme() {
   useEffect(() => {
     document.documentElement.classList.remove(...THEMES);
     document.documentElement.classList.add(theme);
+    document.documentElement.classList.toggle('light', LIGHT_THEMES.includes(theme));
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
