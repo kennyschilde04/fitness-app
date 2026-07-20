@@ -140,7 +140,7 @@ function UnitPill({
       onClick={onClick}
       className={`app-chip ${
         active
-          ? `${colors.bg} ${colors.border} ${colors.text}`
+          ? `app-chip-active ${colors.bg} ${colors.border} ${colors.text} ring-2 ${colors.ring} ring-offset-2 ring-offset-neutral-950 light:ring-offset-white`
           : ''
       }`}
     >

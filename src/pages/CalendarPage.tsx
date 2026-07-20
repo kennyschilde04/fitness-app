@@ -6,7 +6,7 @@ import { SessionModal } from '../components/SessionModal';
 import { WeekCalendar } from '../components/WeekCalendar';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
-import { fromISODate, getMonthStart, getWeekDays, getWeekStart, toISODate } from '../utils/date';
+import { formatDayMonth, fromISODate, getMonthStart, getWeekDays, getWeekStart, toISODate } from '../utils/date';
 
 type ViewMode = 'week' | 'month';
 
@@ -368,6 +368,7 @@ export function CalendarPage() {
         <DayContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          title={formatDayMonth(contextMenu.date)}
           onDelete={handleDeleteFromContextMenu}
           onClose={() => setContextMenu(null)}
         />
