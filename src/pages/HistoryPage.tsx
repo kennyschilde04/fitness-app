@@ -6,7 +6,7 @@ import { useAppData } from '../state/useAppData';
 import { getUnitColor } from '../types';
 import { formatSet } from '../utils/format';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 const ALL_LIMIT = 1000;
 
 function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
