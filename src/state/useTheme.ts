@@ -1,23 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'purple' | 'light' | 'midnight' | 'ember' | 'mint' | 'mono';
 
 const THEME_KEY = 'gym-tracker-theme';
+const THEMES: Theme[] = ['dark', 'purple', 'light', 'midnight', 'ember', 'mint', 'mono'];
 
 function loadTheme(): Theme {
-  return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
+  const stored = localStorage.getItem(THEME_KEY);
+  return THEMES.includes(stored as Theme) ? (stored as Theme) : 'dark';
 }
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
 
   useEffect(() => {
-    document.documentElement.classList.toggle('light', theme === 'light');
+    document.documentElement.classList.remove(...THEMES);
+    document.documentElement.classList.add(theme);
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
+    setTheme((t) => (t === 'light' ? 'dark' : 'light'));
   }, []);
 
   return { theme, setTheme, toggleTheme };

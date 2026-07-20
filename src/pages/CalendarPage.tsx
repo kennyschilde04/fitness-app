@@ -30,9 +30,10 @@ interface SettingsSheetProps {
 
 type SettingsView = 'overview' | 'appearance';
 
-const DEMO_THEMES: { id: string; name: string; subtitle: string; colors: string[]; theme?: Theme }[] = [
-  { id: 'dark', name: 'Dunkel', subtitle: 'Gym Mode', colors: ['#0a0a0a', '#bef264', '#fb923c'], theme: 'dark' },
-  { id: 'light', name: 'Hell', subtitle: 'Clean Mode', colors: ['#fafafa', '#84cc16', '#171717'], theme: 'light' },
+const APP_THEMES: { id: Theme; name: string; subtitle: string; colors: string[] }[] = [
+  { id: 'dark', name: 'Dunkel', subtitle: 'Gym Mode', colors: ['#0a0a0a', '#bef264', '#fb923c'] },
+  { id: 'light', name: 'Hell', subtitle: 'Clean Mode', colors: ['#fafafa', '#84cc16', '#171717'] },
+  { id: 'purple', name: 'Deep Purple', subtitle: 'Dunkel, satt, premium', colors: ['#09040f', '#d946ef', '#c084fc'] },
   { id: 'midnight', name: 'Midnight Steel', subtitle: 'Blau, hart, ruhig', colors: ['#050816', '#38bdf8', '#94a3b8'] },
   { id: 'ember', name: 'Iron Ember', subtitle: 'Warm und aggressiv', colors: ['#140704', '#f97316', '#fde68a'] },
   { id: 'mint', name: 'Mint Focus', subtitle: 'Hell, frisch, minimal', colors: ['#ecfdf5', '#10b981', '#064e3b'] },
@@ -42,7 +43,7 @@ const DEMO_THEMES: { id: string; name: string; subtitle: string; colors: string[
 function SettingsSheet({ theme, onThemeChange, onClose }: SettingsSheetProps) {
   const [view, setView] = useState<SettingsView>('overview');
   const dragStartY = useRef<number | null>(null);
-  const activeTheme = DEMO_THEMES.find((item) => item.theme === theme);
+  const activeTheme = APP_THEMES.find((item) => item.id === theme);
 
   function handlePointerDown(e: PointerEvent<HTMLButtonElement>) {
     dragStartY.current = e.clientY;
@@ -144,12 +145,12 @@ function SettingsSheet({ theme, onThemeChange, onClose }: SettingsSheetProps) {
               </div>
 
               <div className="mt-6 grid gap-3">
-                {DEMO_THEMES.map((option) => {
-                  const active = option.theme === theme;
+                {APP_THEMES.map((option) => {
+                  const active = option.id === theme;
                   return (
                     <button
                       key={option.id}
-                      onClick={() => option.theme && onThemeChange(option.theme)}
+                      onClick={() => onThemeChange(option.id)}
                       className={`flex items-center justify-between rounded-3xl border p-4 text-left transition-transform active:scale-95 ${
                         active
                           ? 'border-lime-300 bg-lime-300 text-neutral-950 light:border-lime-500 light:bg-lime-500 light:text-white'

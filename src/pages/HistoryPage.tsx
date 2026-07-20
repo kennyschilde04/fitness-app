@@ -4,11 +4,31 @@ import type { ExerciseHistoryEntry } from '../state/useAppData';
 import { useAppData } from '../state/useAppData';
 import type { Session, SetEntry, UnitDef } from '../types';
 import { getUnitColor } from '../types';
-import { formatDayMonth, fromISODate, getWeekDays, getWeekStart, toISODate } from '../utils/date';
+import {
+  formatDayMonth,
+  formatMonthYear,
+  fromISODate,
+  getMonthGridDays,
+  getMonthStart,
+  getWeekDays,
+  getWeekStart,
+  toISODate,
+  weekdayShort,
+} from '../utils/date';
 import { formatSet } from '../utils/format';
 
 const PAGE_SIZE = 5;
 const ALL_LIMIT = 1000;
+const UNIT_COLOR_STYLE_PALETTE = [
+  { background: 'rgba(14, 165, 233, 0.16)', border: 'rgba(14, 165, 233, 0.7)', text: '#38bdf8', glow: 'rgba(14, 165, 233, 0.34)' },
+  { background: 'rgba(249, 115, 22, 0.16)', border: 'rgba(249, 115, 22, 0.7)', text: '#fb923c', glow: 'rgba(249, 115, 22, 0.34)' },
+  { background: 'rgba(16, 185, 129, 0.16)', border: 'rgba(16, 185, 129, 0.7)', text: '#34d399', glow: 'rgba(16, 185, 129, 0.34)' },
+  { background: 'rgba(168, 85, 247, 0.16)', border: 'rgba(168, 85, 247, 0.7)', text: '#c084fc', glow: 'rgba(168, 85, 247, 0.34)' },
+  { background: 'rgba(236, 72, 153, 0.16)', border: 'rgba(236, 72, 153, 0.7)', text: '#f472b6', glow: 'rgba(236, 72, 153, 0.34)' },
+  { background: 'rgba(245, 158, 11, 0.16)', border: 'rgba(245, 158, 11, 0.7)', text: '#fbbf24', glow: 'rgba(245, 158, 11, 0.34)' },
+  { background: 'rgba(244, 63, 94, 0.16)', border: 'rgba(244, 63, 94, 0.7)', text: '#fb7185', glow: 'rgba(244, 63, 94, 0.34)' },
+  { background: 'rgba(20, 184, 166, 0.16)', border: 'rgba(20, 184, 166, 0.7)', text: '#2dd4bf', glow: 'rgba(20, 184, 166, 0.34)' },
+];
 
 function completedSets(session: Session): number {
   return session.exercises.reduce(
@@ -35,6 +55,97 @@ function formatVolume(value: number): string {
 
 function latestSessionForUnit(sessions: Session[], unitId: string): Session | undefined {
   return [...sessions].filter((session) => session.unitId === unitId).sort((a, b) => (a.date < b.date ? 1 : -1))[0];
+}
+
+function activityLevel(setCount: number): number {
+  if (setCount <= 0) return 0;
+  if (setCount <= 3) return 1;
+  if (setCount <= 7) return 2;
+  if (setCount <= 12) return 3;
+  return 4;
+}
+
+function ActivityMonth({ sessions, units }: { sessions: Session[]; units: UnitDef[] }) {
+  const monthStart = getMonthStart(new Date());
+  const days = getMonthGridDays(monthStart);
+  const sessionsByDate = new Map(sessions.map((session) => [session.date, session]));
+  const monthSessions = sessions.filter((session) => {
+    const date = fromISODate(session.date);
+    return date.getFullYear() === monthStart.getFullYear() && date.getMonth() === monthStart.getMonth();
+  });
+  const activeDays = monthSessions.length;
+  const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+  const bestDaySets = Math.max(0, ...monthSessions.map(completedSets));
+  const monthVolume = monthSessions.reduce((total, session) => total + sessionVolume(session), 0);
+
+  return (
+    <section className="app-card mt-4 p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-black">Aktivität</p>
+          <p className="app-muted mt-1 text-xs font-semibold">{formatMonthYear(monthStart)}</p>
+        </div>
+        <div className="flex gap-2">
+          <div className="app-stat-badge">
+            <p className="text-lg font-black text-lime-300 light:text-lime-700">{activeDays}/{daysInMonth}</p>
+            <p className="app-muted text-[10px] font-bold uppercase">Tage</p>
+          </div>
+          <div className="app-stat-badge">
+            <p className="text-lg font-black text-lime-300 light:text-lime-700">{formatVolume(monthVolume)}</p>
+            <p className="app-muted text-[10px] font-bold uppercase">Monat</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-7 gap-2">
+        {getWeekDays(getWeekStart(monthStart)).map((day) => (
+          <p key={weekdayShort(day)} className="text-center text-[10px] font-black uppercase text-neutral-600">
+            {weekdayShort(day)}
+          </p>
+        ))}
+        {days.map((day) => {
+          const iso = toISODate(day);
+          const session = sessionsByDate.get(iso);
+          const unit = session ? units.find((item) => item.id === session.unitId) : undefined;
+          const isCurrentMonth = day.getMonth() === monthStart.getMonth();
+          const setCount = session ? completedSets(session) : 0;
+          const level = activityLevel(setCount);
+          const colors = unit ? getUnitColor(unit) : null;
+          const fallbackLevels = [
+            'bg-neutral-900/80 light:bg-neutral-100',
+            'bg-lime-300/20 light:bg-lime-200',
+            'bg-lime-300/40 light:bg-lime-300',
+            'bg-lime-300/70 light:bg-lime-400',
+            'bg-lime-300 light:bg-lime-600',
+          ];
+
+          return (
+            <div
+              key={iso}
+              className={`aspect-square rounded-xl border transition-transform active:scale-95 ${
+                session && colors
+                  ? `${colors.bg} ${colors.border}`
+                  : `border-white/5 ${fallbackLevels[level]} light:border-neutral-200`
+              } ${isCurrentMonth ? '' : 'opacity-20'}`}
+              title={session ? `${formatDayMonth(day)} · ${setCount} Sätze` : formatDayMonth(day)}
+            >
+              <span className={`flex h-full items-center justify-center text-[11px] font-black ${
+                session && colors ? colors.text : 'text-neutral-600'
+              }`}>
+                {day.getDate()}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-5">
+        <p className="app-muted text-xs font-semibold">
+          {bestDaySets > 0 ? `Stärkster Tag: ${bestDaySets} Sätze` : 'Noch kein Training diesen Monat'}
+        </p>
+      </div>
+    </section>
+  );
 }
 
 function SetRows({ entries }: { entries: ExerciseHistoryEntry['entries'] }) {
@@ -134,15 +245,21 @@ function UnitPill({
   active: boolean;
   onClick: () => void;
 }) {
-  const colors = getUnitColor(unit);
+  const colorStyle = UNIT_COLOR_STYLE_PALETTE[unit.colorIndex % UNIT_COLOR_STYLE_PALETTE.length];
   return (
     <button
       onClick={onClick}
-      className={`app-chip ${
+      className={`app-chip ${active ? 'app-chip-active' : ''}`}
+      style={
         active
-          ? `app-chip-active ${colors.bg} ${colors.border} ${colors.text} ring-2 ${colors.ring} ring-offset-2 ring-offset-neutral-950 light:ring-offset-white`
-          : ''
-      }`}
+          ? {
+              background: colorStyle.background,
+              borderColor: colorStyle.border,
+              color: colorStyle.text,
+              boxShadow: `0 0 0 2px ${colorStyle.glow}, 0 18px 38px rgba(0, 0, 0, 0.35)`,
+            }
+          : undefined
+      }
     >
       {unit.name}
     </button>
@@ -229,6 +346,8 @@ export function HistoryPage() {
             })}
           </div>
         </section>
+
+        <ActivityMonth sessions={sortedSessions} units={sortedUnits} />
 
         {sortedUnits.length > 0 && (
           <section className="mt-9">

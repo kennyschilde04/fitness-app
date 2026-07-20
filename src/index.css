@@ -41,6 +41,86 @@ html.light {
   --app-shadow-card: 0 18px 45px rgba(163, 163, 163, 0.26);
 }
 
+html.purple {
+  --app-bg: #09040f;
+  --app-bg-top: #27103f;
+  --app-text: #fbf7ff;
+  --app-text-muted: #8d7a9e;
+  --app-text-soft: #c9b6dd;
+  --app-accent: #d946ef;
+  --app-accent-strong: #a855f7;
+  --app-surface: rgba(216, 180, 254, 0.07);
+  --app-surface-strong: rgba(18, 8, 28, 0.76);
+  --app-surface-soft: rgba(39, 16, 63, 0.72);
+  --app-border: rgba(216, 180, 254, 0.16);
+  --app-border-strong: rgba(216, 180, 254, 0.26);
+  --app-shadow-card: 0 20px 50px rgba(88, 28, 135, 0.34);
+}
+
+html.midnight {
+  --app-bg: #050816;
+  --app-bg-top: #0f2747;
+  --app-text: #f8fafc;
+  --app-text-muted: #64748b;
+  --app-text-soft: #cbd5e1;
+  --app-accent: #38bdf8;
+  --app-accent-strong: #0ea5e9;
+  --app-surface: rgba(148, 163, 184, 0.07);
+  --app-surface-strong: rgba(2, 6, 23, 0.72);
+  --app-surface-soft: rgba(15, 23, 42, 0.78);
+  --app-border: rgba(148, 163, 184, 0.16);
+  --app-border-strong: rgba(56, 189, 248, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(2, 132, 199, 0.18);
+}
+
+html.ember {
+  --app-bg: #120604;
+  --app-bg-top: #3a1208;
+  --app-text: #fff7ed;
+  --app-text-muted: #9a7565;
+  --app-text-soft: #fed7aa;
+  --app-accent: #fb923c;
+  --app-accent-strong: #f97316;
+  --app-surface: rgba(251, 146, 60, 0.07);
+  --app-surface-strong: rgba(24, 10, 5, 0.76);
+  --app-surface-soft: rgba(67, 20, 7, 0.72);
+  --app-border: rgba(251, 146, 60, 0.16);
+  --app-border-strong: rgba(251, 146, 60, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(154, 52, 18, 0.26);
+}
+
+html.mint {
+  --app-bg: #f0fdfa;
+  --app-bg-top: #ccfbf1;
+  --app-text: #042f2e;
+  --app-text-muted: #4d7c73;
+  --app-text-soft: #0f766e;
+  --app-accent: #14b8a6;
+  --app-accent-strong: #0d9488;
+  --app-surface: rgba(255, 255, 255, 0.76);
+  --app-surface-strong: rgba(204, 251, 241, 0.7);
+  --app-surface-soft: rgba(240, 253, 250, 0.82);
+  --app-border: rgba(15, 118, 110, 0.16);
+  --app-border-strong: rgba(15, 118, 110, 0.24);
+  --app-shadow-card: 0 18px 45px rgba(20, 184, 166, 0.18);
+}
+
+html.mono {
+  --app-bg: #080808;
+  --app-bg-top: #1f1f1f;
+  --app-text: #fafafa;
+  --app-text-muted: #737373;
+  --app-text-soft: #d4d4d4;
+  --app-accent: #f5f5f5;
+  --app-accent-strong: #d4d4d4;
+  --app-surface: rgba(255, 255, 255, 0.055);
+  --app-surface-strong: rgba(12, 12, 12, 0.78);
+  --app-surface-soft: rgba(38, 38, 38, 0.74);
+  --app-border: rgba(255, 255, 255, 0.16);
+  --app-border-strong: rgba(255, 255, 255, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(0, 0, 0, 0.32);
+}
+
 html,
 body,
 #root {
@@ -57,7 +137,12 @@ body {
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-html.light body {
+html.light body,
+html.purple body,
+html.midnight body,
+html.ember body,
+html.mint body,
+html.mono body {
   background: var(--app-bg);
   color: var(--app-text);
 }
