@@ -51,6 +51,7 @@ export function CalendarPage() {
     updateExerciseNote,
     addExerciseToSession,
     removeExerciseFromUnit,
+    reorderSessionExercises,
     getPreviousSessions,
   } = useAppData();
 
@@ -199,6 +200,9 @@ export function CalendarPage() {
           onAddExercise={(name) => selectedSession && addExerciseToSession(selectedSession.id, name)}
           onRemoveExercise={(exerciseId) =>
             selectedSession && removeExerciseFromUnit(selectedSession.id, exerciseId)
+          }
+          onReorderExercises={(draggedExerciseId, targetExerciseId) =>
+            selectedSession && reorderSessionExercises(selectedSession.id, draggedExerciseId, targetExerciseId)
           }
           getPreviousSessions={(unitId, exerciseId) =>
             selectedSession ? getPreviousSessions(unitId, exerciseId, selectedSession.id) : []

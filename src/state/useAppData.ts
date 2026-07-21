@@ -268,6 +268,23 @@ export function useAppData() {
     });
   }, []);
 
+  const reorderSessionExercises = useCallback((sessionId: string, draggedExerciseId: string, targetExerciseId: string) => {
+    if (draggedExerciseId === targetExerciseId) return;
+    setData((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((session) => {
+        if (session.id !== sessionId) return session;
+        const fromIndex = session.exercises.findIndex((exercise) => exercise.exerciseId === draggedExerciseId);
+        const toIndex = session.exercises.findIndex((exercise) => exercise.exerciseId === targetExerciseId);
+        if (fromIndex < 0 || toIndex < 0) return session;
+        const exercises = session.exercises.slice();
+        const [moved] = exercises.splice(fromIndex, 1);
+        exercises.splice(toIndex, 0, moved);
+        return { ...session, exercises };
+      }),
+    }));
+  }, []);
+
   const deleteUnit = useCallback((unitId: string) => {
     setData((prev) => ({
       units: prev.units.filter((u) => u.id !== unitId),
@@ -375,6 +392,7 @@ export function useAppData() {
     addExerciseToUnit,
     removeExerciseFromUnit,
     removeExerciseFromUnitPlan,
+    reorderSessionExercises,
     getPreviousSessions,
     getRecentSessions,
     getUnitExerciseHistory,

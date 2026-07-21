@@ -22,6 +22,7 @@ interface SessionModalProps {
   onNoteChange: (exerciseId: string, note: string) => void;
   onAddExercise: (name: string) => void;
   onRemoveExercise: (exerciseId: string) => void;
+  onReorderExercises: (draggedExerciseId: string, targetExerciseId: string) => void;
   getPreviousSessions: (unitId: string, exerciseId: string) => PreviousSessionEntry[];
 }
 
@@ -45,10 +46,13 @@ export function SessionModal({
   onNoteChange,
   onAddExercise,
   onRemoveExercise,
+  onReorderExercises,
   getPreviousSessions,
 }: SessionModalProps) {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [visible, setVisible] = useState(false);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(session?.exercises[0]?.exerciseId ?? null);
+  const [draggedExerciseId, setDraggedExerciseId] = useState<string | null>(null);
   const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
   const colors = unit ? getUnitColor(unit) : null;
 
@@ -67,6 +71,12 @@ export function SessionModal({
     if (window.confirm('Diese Einheit für den Tag wirklich löschen? Alle erfassten Sätze gehen verloren.')) {
       onDeleteSession();
     }
+  }
+
+  function handleExerciseDrop(targetExerciseId: string) {
+    if (!draggedExerciseId) return;
+    onReorderExercises(draggedExerciseId, targetExerciseId);
+    setDraggedExerciseId(null);
   }
 
   return (
@@ -194,6 +204,13 @@ export function SessionModal({
                   key={exercise.exerciseId}
                   exercise={exercise}
                   history={getPreviousSessions(session.unitId, exercise.exerciseId)}
+                  expanded={expandedExerciseId === exercise.exerciseId}
+                  dragging={draggedExerciseId === exercise.exerciseId}
+                  onToggle={() => setExpandedExerciseId((current) => (current === exercise.exerciseId ? null : exercise.exerciseId))}
+                  onDragStart={() => setDraggedExerciseId(exercise.exerciseId)}
+                  onDragEnter={() => draggedExerciseId && draggedExerciseId !== exercise.exerciseId && handleExerciseDrop(exercise.exerciseId)}
+                  onDragOverExercise={handleExerciseDrop}
+                  onDragEnd={() => setDraggedExerciseId(null)}
                   onSetChange={(setIndex, patch) => onSetChange(exercise.exerciseId, setIndex, patch)}
                   onAddSet={() => onAddSet(exercise.exerciseId)}
                   onRemoveSet={() => onRemoveSet(exercise.exerciseId)}

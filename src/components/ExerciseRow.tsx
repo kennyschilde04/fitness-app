@@ -3,10 +3,18 @@ import type { SessionExercise, SetEntry } from '../types';
 import { MAX_SETS, MIN_SETS } from '../types';
 import { formatDayMonth, fromISODate } from '../utils/date';
 import { formatSet } from '../utils/format';
+import { useState, type PointerEvent } from 'react';
 
 interface ExerciseRowProps {
   exercise: SessionExercise;
   history: PreviousSessionEntry[];
+  expanded: boolean;
+  dragging: boolean;
+  onToggle: () => void;
+  onDragStart: () => void;
+  onDragEnter: () => void;
+  onDragOverExercise: (exerciseId: string) => void;
+  onDragEnd: () => void;
   onSetChange: (setIndex: number, patch: Partial<SetEntry>) => void;
   onAddSet: () => void;
   onRemoveSet: () => void;
@@ -23,30 +31,108 @@ function parseNumber(value: string): number | null {
 export function ExerciseRow({
   exercise,
   history,
+  expanded,
+  dragging,
+  onToggle,
+  onDragStart,
+  onDragEnter,
+  onDragOverExercise,
+  onDragEnd,
   onSetChange,
   onAddSet,
   onRemoveSet,
   onNoteChange,
   onRemove,
 }: ExerciseRowProps) {
+  const [touchDragging, setTouchDragging] = useState(false);
+
+  function handlePointerDown(event: PointerEvent<HTMLSpanElement>) {
+    event.stopPropagation();
+    setTouchDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onDragStart();
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLSpanElement>) {
+    if (!touchDragging) return;
+    const target = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>('[data-exercise-drop-id]');
+    const targetId = target?.dataset.exerciseDropId;
+    if (targetId && targetId !== exercise.exerciseId) onDragOverExercise(targetId);
+  }
+
+  function handlePointerUp() {
+    if (!touchDragging) return;
+    setTouchDragging(false);
+    onDragEnd();
+  }
+
   return (
     <div
       id={`exercise-${exercise.exerciseId}`}
-      className="app-exercise-card"
+      data-exercise-drop-id={exercise.exerciseId}
+      draggable
+      onDragStart={onDragStart}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        onDragEnter();
+      }}
+      onDragOver={(event) => event.preventDefault()}
+      onDragEnd={onDragEnd}
+      className={`app-exercise-card app-exercise-card-animated ${dragging ? 'app-exercise-card-dragging' : ''} ${expanded ? 'app-exercise-card-expanded' : 'p-0'}`}
     >
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-wide text-neutral-500">Übung</p>
-          <h3 className="mt-1 text-2xl font-black leading-none text-neutral-100 light:text-neutral-900">{exercise.name}</h3>
-        </div>
-        <button
-          onClick={onRemove}
-          className="app-danger-button shrink-0 px-4 py-2 text-xs"
-          aria-label={`${exercise.name} entfernen`}
-        >
-          Entfernen
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`flex w-full items-center justify-between gap-3 rounded-[1.75rem] text-left transition-[margin,transform] duration-300 active:scale-[0.98] ${
+          expanded ? 'mb-6' : 'p-4'
+        }`}
+        aria-expanded={expanded}
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className={`flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-2xl bg-[var(--app-surface-strong)] text-[var(--app-text-muted)] transition-all duration-200 ${touchDragging ? 'scale-110 text-[var(--app-accent)]' : ''}`}
+            aria-label={`${exercise.name} verschieben`}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="h-5 w-5">
+              <path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01" />
+            </svg>
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-lg font-black text-neutral-100 light:text-neutral-900">{exercise.name}</span>
+            <span className="app-muted mt-0.5 block text-xs font-bold">
+              {exercise.sets.length} Sätze
+              {exercise.note.trim() ? ' · Notiz' : ''}
+            </span>
+          </span>
+        </span>
+        <span className={`shrink-0 text-[var(--app-text-muted)] transition-transform ${expanded ? 'rotate-180' : ''}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+      </button>
+
+      <div className={`app-exercise-accordion ${expanded ? 'app-exercise-accordion-open' : ''}`}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-neutral-500">Übung</p>
+              <h3 className="mt-1 text-2xl font-black leading-none text-neutral-100 light:text-neutral-900">{exercise.name}</h3>
+            </div>
+            <button
+              onClick={onRemove}
+              className="app-danger-button shrink-0 px-4 py-2 text-xs"
+              aria-label={`${exercise.name} entfernen`}
+            >
+              Entfernen
+            </button>
+          </div>
 
       <div className="mb-4 flex flex-col gap-3">
         {exercise.sets.map((set, i) => (
@@ -121,6 +207,8 @@ export function ExerciseRow({
         onChange={(e) => onNoteChange(e.target.value)}
         className="app-input app-input-wide w-full text-sm"
       />
+        </div>
+      </div>
     </div>
   );
 }
