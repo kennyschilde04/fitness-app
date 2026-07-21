@@ -131,7 +131,7 @@ function ActivityMonth({ sessions, units }: { sessions: Session[]; units: UnitDe
               key={iso}
               className={`relative aspect-square overflow-hidden rounded-xl border border-white/[0.055] transition-transform active:scale-95 light:border-neutral-200 ${
                 fallbackLevels[level]
-              } ${isCurrentMonth ? '' : 'opacity-20'} ${isToday ? 'ring-1 ring-[var(--app-accent)] ring-offset-2 ring-offset-neutral-950 light:ring-offset-white' : ''}`}
+              } ${isCurrentMonth ? '' : 'opacity-20'}`}
               title={session ? `${formatDayMonth(day)} · ${setCount} Sätze` : formatDayMonth(day)}
             >
               <span className="relative flex h-full items-center justify-center text-[11px] font-black text-neutral-500">

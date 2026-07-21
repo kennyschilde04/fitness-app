@@ -51,7 +51,7 @@ export function MonthCalendar({
         </button>
       </div>
 
-      <section className="min-h-0 overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950/50 p-3 shadow-2xl shadow-black/20 light:border-neutral-200 light:bg-white/65 light:shadow-neutral-200/50">
+      <section className="min-h-0 overflow-hidden rounded-[2rem] border border-neutral-800 bg-neutral-950/50 p-3 pb-4 shadow-2xl shadow-black/20 light:border-neutral-200 light:bg-white/65 light:shadow-neutral-200/50">
         <div className="mb-2 grid shrink-0 grid-cols-7">
           {WEEKDAY_HEADERS.map((d) => (
             <span key={d} className="py-2 text-center text-[11px] font-black uppercase text-neutral-500">
@@ -60,7 +60,7 @@ export function MonthCalendar({
           ))}
         </div>
 
-        <div className="grid min-h-0 grid-cols-7 gap-y-2">
+        <div className="grid min-h-0 grid-cols-7 gap-y-2.5">
           {days.map((date) => {
             const session = getSessionForDate(toISODate(date));
             const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
