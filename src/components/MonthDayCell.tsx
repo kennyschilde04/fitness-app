@@ -26,7 +26,7 @@ export function MonthDayCell({ date, unit, isCurrentMonth, onClick, onLongPress 
       onPointerUp={longPress.onPointerUp}
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
-      className={`flex h-[5.15rem] flex-col items-center justify-start rounded-2xl px-0.5 py-2 transition-all duration-150 active:scale-95
+      className={`flex h-full min-h-0 flex-col items-center justify-start rounded-2xl px-0.5 py-1 transition-all duration-150 active:scale-95
         ${isCurrentMonth ? '' : 'opacity-30'}
       `}
     >
@@ -40,7 +40,7 @@ export function MonthDayCell({ date, unit, isCurrentMonth, onClick, onLongPress 
         {date.getDate()}
       </span>
       {unit && (
-        <div className={`mt-2 w-full rounded-full border px-1.5 py-1.5 ${colors!.bg} ${colors!.border}`}>
+        <div className={`mt-1 w-full rounded-full border px-1.5 py-1 ${colors!.bg} ${colors!.border}`}>
           <span className={`block truncate text-center text-[9px] font-black leading-none ${colors!.text}`}>
             {unit.name}
           </span>
