@@ -51,6 +51,56 @@ function demoSession(daysAgo: number, unitId: string, exerciseIds: string[], bas
   };
 }
 
+function isoFromDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function seededNoise(seed: number): number {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function fullDemoSession(dayOffset: number, splitIndex: number, trainingIndex: number): Session | null {
+  const skippedDays = new Set([9, 22, 37, 45]);
+  if (skippedDays.has(dayOffset)) return null;
+
+  const unit = DEFAULT_UNITS[splitIndex];
+  const exercises = DEMO_EXERCISES.filter((exercise) => exercise.unitId === unit.id).sort((a, b) => a.order - b.order);
+  const omitLastExercise = [14, 29, 51].includes(dayOffset);
+  const activeExercises = omitLastExercise ? exercises.slice(0, 2) : exercises;
+  const baseByUnit = [37.5, 32.5, 57.5][splitIndex];
+  const progress = Math.floor(trainingIndex / 6) * 2.5;
+  const fatigue = seededNoise(dayOffset + splitIndex) > 0.78 ? -2.5 : 0;
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - (59 - dayOffset));
+
+  return {
+    id: `full-demo-session-${dayOffset}`,
+    date: isoFromDate(date),
+    unitId: unit.id,
+    exercises: activeExercises.map((exercise, exerciseIndex) => {
+      const baseWeight = baseByUnit + progress + fatigue + exerciseIndex * 5;
+      const repDrop = seededNoise(dayOffset * 3 + exerciseIndex) > 0.65 ? 1 : 0;
+      const setCount = seededNoise(dayOffset + exerciseIndex * 7) > 0.88 ? 2 : 3;
+      const sets = Array.from({ length: setCount }, (_, setIndex) => ({
+        weight: baseWeight - (setIndex === 2 ? 2.5 : 0),
+        reps: Math.max(6, 10 - setIndex - repDrop + (seededNoise(dayOffset + setIndex) > 0.82 ? 1 : 0)),
+      }));
+
+      return {
+        exerciseId: exercise.id,
+        name: exercise.name,
+        note: exerciseIndex === 0 && seededNoise(dayOffset) > 0.72 ? 'Starkes Training. Technik sauber halten.' : '',
+        sets,
+      };
+    }),
+  };
+}
+
 export function demoData(): AppData {
   const sessions: Session[] = [
     demoSession(0, 'unit-arme-brust', ['ex-bankdruecken', 'ex-schraegbank', 'ex-curls'], 35),
@@ -64,6 +114,26 @@ export function demoData(): AppData {
   ];
 
   return { units: structuredClone(DEFAULT_UNITS), exercises: structuredClone(DEMO_EXERCISES), sessions };
+}
+
+export function fullDemoData(): AppData {
+  const sessions: Session[] = [];
+  let trainingIndex = 0;
+
+  for (let dayOffset = 0; dayOffset < 60; dayOffset += 1) {
+    const weekday = dayOffset % 7;
+    if (weekday === 6) continue;
+    const splitIndex = trainingIndex % DEFAULT_UNITS.length;
+    const session = fullDemoSession(dayOffset, splitIndex, trainingIndex);
+    if (session) sessions.push(session);
+    trainingIndex += 1;
+  }
+
+  return {
+    units: structuredClone(DEFAULT_UNITS),
+    exercises: structuredClone(DEMO_EXERCISES),
+    sessions,
+  };
 }
 
 export function emptyData(): AppData {

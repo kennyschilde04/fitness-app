@@ -49,7 +49,7 @@ function formatBytes(bytes: number): string {
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { resetToDemoData, resetToEmptyData } = useAppData();
+  const { resetToDemoData, resetToEmptyData, resetToFullDemoData } = useAppData();
   const [view, setView] = useState<SettingsView>('overview');
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
@@ -103,6 +103,12 @@ export function SettingsPage() {
     resetToDemoData();
     refreshStorageStats((value) => value + 1);
     showToast(message);
+  }
+
+  function loadFullDemoData() {
+    resetToFullDemoData();
+    refreshStorageStats((value) => value + 1);
+    showToast('2 Monate Demo wurden geladen');
   }
 
   function loadEmptyApp() {
@@ -567,14 +573,14 @@ export function SettingsPage() {
             <header>
               <p className="app-eyebrow">Demo-Daten</p>
               <h1 className="mt-1 text-4xl font-black leading-none">Testmodus</h1>
-              <p className="app-muted mt-4 text-sm font-semibold">Beispieldaten für Design, Onboarding und schnelle Tests.</p>
+              <p className="app-muted mt-4 text-sm font-semibold">Beispieldaten für Design, Onboarding und echte Verlaufsansichten.</p>
             </header>
 
             <section className="app-card mt-8 p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-lg font-black">Demo-Profil</p>
-                  <p className="app-muted mt-2 text-sm font-semibold">Ein fertiger Trainingsmonat mit Splits, Übungen und Verlauf.</p>
+                  <p className="app-muted mt-2 text-sm font-semibold">Realistische 3er-Split-Daten mit Pausen, Schwankungen und Progression.</p>
                 </div>
                 <SettingsBadge>Dev</SettingsBadge>
               </div>
@@ -584,11 +590,11 @@ export function SettingsPage() {
                   <p className="app-muted mt-1 text-[11px] font-black uppercase">Splits</p>
                 </div>
                 <div className="app-soft-row">
-                  <p className="text-xl font-black">12</p>
+                  <p className="text-xl font-black">48</p>
                   <p className="app-muted mt-1 text-[11px] font-black uppercase">Trainings</p>
                 </div>
                 <div className="app-soft-row">
-                  <p className="text-xl font-black">36</p>
+                  <p className="text-xl font-black">~400</p>
                   <p className="app-muted mt-1 text-[11px] font-black uppercase">Sätze</p>
                 </div>
               </div>
@@ -597,6 +603,16 @@ export function SettingsPage() {
             <section className="mt-6">
               <p className="mb-3 text-sm font-black">Aktionen</p>
               <div className="grid gap-3">
+                <button
+                  onClick={loadFullDemoData}
+                  className="app-list-button"
+                >
+                  <span>
+                    <span className="block text-base font-black">2 Monate voll</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">3er Split, meist 6x/Woche, mit zufälligen Pausen</span>
+                  </span>
+                  <SettingsBadge>Laden</SettingsBadge>
+                </button>
                 <button
                   onClick={() => loadDemoData('Beispielplan wurde geladen')}
                   className="app-list-button"
