@@ -52,7 +52,7 @@ export function WeekCalendar({
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-4">
+    <div className="flex min-h-full w-full flex-col gap-4 pb-8">
       <div className="flex shrink-0 items-center justify-between">
         <button
           onClick={() => moveWeek(-1)}

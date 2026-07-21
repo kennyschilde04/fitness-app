@@ -143,7 +143,7 @@ export function CalendarPage() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 pb-28">
+        <div className={`min-h-0 flex-1 ${viewMode === 'week' ? 'pb-[calc(var(--app-safe-bottom)+8rem)]' : 'pb-0'}`}>
           {viewMode === 'week' ? (
             <WeekCalendar
               weekStart={weekStart}
