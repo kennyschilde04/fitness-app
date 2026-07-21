@@ -136,8 +136,8 @@ function ActivityMonth({ sessions, units }: { sessions: Session[]; units: UnitDe
             >
               <span className="relative flex h-full items-center justify-center text-[11px] font-black text-neutral-500">
                 {day.getDate()}
-                {isToday && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-[var(--app-accent)]" />}
               </span>
+              {isToday && <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--app-accent)]" />}
               {session && colors && (
                 <span className={`absolute inset-x-2 bottom-1.5 h-1 rounded-full ${colors.text} bg-current opacity-90`} />
               )}
