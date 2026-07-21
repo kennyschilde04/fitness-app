@@ -1,6 +1,6 @@
 import type { AppData, ExerciseDef, Session, UnitDef } from './types';
 
-const STORAGE_KEY = 'gym-tracker-data-v2';
+export const STORAGE_KEY = 'gym-tracker-data-v2';
 
 const DEFAULT_UNITS: UnitDef[] = [
   { id: 'unit-schulter-ruecken', name: 'Schulter/Rücken', colorIndex: 0, order: 0 },
@@ -51,7 +51,7 @@ function demoSession(daysAgo: number, unitId: string, exerciseIds: string[], bas
   };
 }
 
-function demoData(): AppData {
+export function demoData(): AppData {
   const sessions: Session[] = [
     demoSession(0, 'unit-arme-brust', ['ex-bankdruecken', 'ex-schraegbank', 'ex-curls'], 35),
     demoSession(2, 'unit-beine', ['ex-kniebeuge', 'ex-beinpresse', 'ex-beinbeuger'], 60),
@@ -66,8 +66,8 @@ function demoData(): AppData {
   return { units: structuredClone(DEFAULT_UNITS), exercises: structuredClone(DEMO_EXERCISES), sessions };
 }
 
-function emptyData(): AppData {
-  return demoData();
+export function emptyData(): AppData {
+  return { units: [], exercises: [], sessions: [] };
 }
 
 export function loadData(): AppData {
@@ -75,7 +75,6 @@ export function loadData(): AppData {
   if (!raw) return emptyData();
   try {
     const parsed = JSON.parse(raw) as AppData;
-    if ((parsed.exercises?.length ?? 0) === 0 && (parsed.sessions?.length ?? 0) === 0) return demoData();
     return {
       units: parsed.units ?? structuredClone(DEFAULT_UNITS),
       exercises: parsed.exercises ?? [],

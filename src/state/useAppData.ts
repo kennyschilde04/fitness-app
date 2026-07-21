@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { loadData, saveData } from '../storage';
+import { demoData, emptyData, loadData, saveData } from '../storage';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
@@ -283,6 +283,18 @@ export function useAppData() {
     }));
   }, []);
 
+  const resetToDemoData = useCallback(() => {
+    const next = demoData();
+    saveData(next);
+    setData(next);
+  }, []);
+
+  const resetToEmptyData = useCallback(() => {
+    const next = emptyData();
+    saveData(next);
+    setData(next);
+  }, []);
+
   const getRecentSessions = useCallback(
     (unitId: string, limit = 10): Session[] =>
       data.sessions
@@ -360,5 +372,7 @@ export function useAppData() {
     getPreviousSessions,
     getRecentSessions,
     getUnitExerciseHistory,
+    resetToDemoData,
+    resetToEmptyData,
   };
 }

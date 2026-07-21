@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ExerciseHistoryEntry } from '../state/useAppData';
+import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import type { Session, SetEntry, UnitDef } from '../types';
 import { getUnitColor, UNIT_COLOR_PALETTE } from '../types';
@@ -517,7 +518,7 @@ export function HistoryPage() {
 
   return (
     <div className="app-screen">
-      <main className="app-scroll">
+      <main className="app-scroll app-scroll-with-dock">
         <button
           onClick={() => navigate('/')}
           className="app-icon-button mb-8"
@@ -761,6 +762,7 @@ export function HistoryPage() {
           onClose={() => setEditSplitOpen(false)}
         />
       )}
+      <AppDock active="insight" />
     </div>
   );
 }
