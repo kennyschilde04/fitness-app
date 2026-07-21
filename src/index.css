@@ -232,6 +232,7 @@ button {
   overflow-y: auto;
   overflow-x: hidden;
   padding-inline: var(--app-page-x);
+  padding-bottom: calc(var(--app-safe-bottom) + 5.75rem);
 }
 
 .app-card {
