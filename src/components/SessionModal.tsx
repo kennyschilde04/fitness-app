@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Reorder } from 'framer-motion';
 import type { PreviousSessionEntry } from '../state/useAppData';
 import type { Session, SetEntry, UnitDef } from '../types';
 import { getUnitColor, UNIT_COLOR_PALETTE } from '../types';
@@ -22,7 +23,7 @@ interface SessionModalProps {
   onNoteChange: (exerciseId: string, note: string) => void;
   onAddExercise: (name: string) => void;
   onRemoveExercise: (exerciseId: string) => void;
-  onReorderExercises: (draggedExerciseId: string, targetExerciseId: string) => void;
+  onReorderExercises: (orderedExerciseIds: string[]) => void;
   getPreviousSessions: (unitId: string, exerciseId: string) => PreviousSessionEntry[];
 }
 
@@ -52,7 +53,6 @@ export function SessionModal({
   const [newExerciseName, setNewExerciseName] = useState('');
   const [visible, setVisible] = useState(false);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(session?.exercises[0]?.exerciseId ?? null);
-  const [draggedExerciseId, setDraggedExerciseId] = useState<string | null>(null);
   const unit = session ? units.find((u) => u.id === session.unitId) : undefined;
   const colors = unit ? getUnitColor(unit) : null;
 
@@ -71,12 +71,6 @@ export function SessionModal({
     if (window.confirm('Diese Einheit für den Tag wirklich löschen? Alle erfassten Sätze gehen verloren.')) {
       onDeleteSession();
     }
-  }
-
-  function handleExerciseDrop(targetExerciseId: string) {
-    if (!draggedExerciseId) return;
-    onReorderExercises(draggedExerciseId, targetExerciseId);
-    setDraggedExerciseId(null);
   }
 
   return (
@@ -199,25 +193,28 @@ export function SessionModal({
                 </div>
               )}
 
-              {session.exercises.map((exercise) => (
-                <ExerciseRow
-                  key={exercise.exerciseId}
-                  exercise={exercise}
-                  history={getPreviousSessions(session.unitId, exercise.exerciseId)}
-                  expanded={expandedExerciseId === exercise.exerciseId}
-                  dragging={draggedExerciseId === exercise.exerciseId}
-                  onToggle={() => setExpandedExerciseId((current) => (current === exercise.exerciseId ? null : exercise.exerciseId))}
-                  onDragStart={() => setDraggedExerciseId(exercise.exerciseId)}
-                  onDragEnter={() => draggedExerciseId && draggedExerciseId !== exercise.exerciseId && handleExerciseDrop(exercise.exerciseId)}
-                  onDragOverExercise={handleExerciseDrop}
-                  onDragEnd={() => setDraggedExerciseId(null)}
-                  onSetChange={(setIndex, patch) => onSetChange(exercise.exerciseId, setIndex, patch)}
-                  onAddSet={() => onAddSet(exercise.exerciseId)}
-                  onRemoveSet={() => onRemoveSet(exercise.exerciseId)}
-                  onNoteChange={(note) => onNoteChange(exercise.exerciseId, note)}
-                  onRemove={() => onRemoveExercise(exercise.exerciseId)}
-                />
-              ))}
+              <Reorder.Group
+                as="div"
+                axis="y"
+                values={session.exercises.map((exercise) => exercise.exerciseId)}
+                onReorder={onReorderExercises}
+                className="flex flex-col gap-6"
+              >
+                {session.exercises.map((exercise) => (
+                  <ExerciseRow
+                    key={exercise.exerciseId}
+                    exercise={exercise}
+                    history={getPreviousSessions(session.unitId, exercise.exerciseId)}
+                    expanded={expandedExerciseId === exercise.exerciseId}
+                    onToggle={() => setExpandedExerciseId((current) => (current === exercise.exerciseId ? null : exercise.exerciseId))}
+                    onSetChange={(setIndex, patch) => onSetChange(exercise.exerciseId, setIndex, patch)}
+                    onAddSet={() => onAddSet(exercise.exerciseId)}
+                    onRemoveSet={() => onRemoveSet(exercise.exerciseId)}
+                    onNoteChange={(note) => onNoteChange(exercise.exerciseId, note)}
+                    onRemove={() => onRemoveExercise(exercise.exerciseId)}
+                  />
+                ))}
+              </Reorder.Group>
             </div>
 
             <div className="mt-6 flex gap-3 pb-[env(safe-area-inset-bottom)]">

@@ -268,18 +268,15 @@ export function useAppData() {
     });
   }, []);
 
-  const reorderSessionExercises = useCallback((sessionId: string, draggedExerciseId: string, targetExerciseId: string) => {
-    if (draggedExerciseId === targetExerciseId) return;
+  const setExerciseOrder = useCallback((sessionId: string, orderedExerciseIds: string[]) => {
     setData((prev) => ({
       ...prev,
       sessions: prev.sessions.map((session) => {
         if (session.id !== sessionId) return session;
-        const fromIndex = session.exercises.findIndex((exercise) => exercise.exerciseId === draggedExerciseId);
-        const toIndex = session.exercises.findIndex((exercise) => exercise.exerciseId === targetExerciseId);
-        if (fromIndex < 0 || toIndex < 0) return session;
-        const exercises = session.exercises.slice();
-        const [moved] = exercises.splice(fromIndex, 1);
-        exercises.splice(toIndex, 0, moved);
+        const byId = new Map(session.exercises.map((exercise) => [exercise.exerciseId, exercise]));
+        const exercises = orderedExerciseIds
+          .map((id) => byId.get(id))
+          .filter((exercise): exercise is SessionExercise => exercise !== undefined);
         return { ...session, exercises };
       }),
     }));
@@ -392,7 +389,7 @@ export function useAppData() {
     addExerciseToUnit,
     removeExerciseFromUnit,
     removeExerciseFromUnitPlan,
-    reorderSessionExercises,
+    setExerciseOrder,
     getPreviousSessions,
     getRecentSessions,
     getUnitExerciseHistory,

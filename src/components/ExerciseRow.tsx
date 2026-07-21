@@ -3,18 +3,13 @@ import type { SessionExercise, SetEntry } from '../types';
 import { MAX_SETS, MIN_SETS } from '../types';
 import { formatDayMonth, fromISODate } from '../utils/date';
 import { formatSet } from '../utils/format';
-import { useState, type PointerEvent } from 'react';
+import { Reorder, useDragControls } from 'framer-motion';
 
 interface ExerciseRowProps {
   exercise: SessionExercise;
   history: PreviousSessionEntry[];
   expanded: boolean;
-  dragging: boolean;
   onToggle: () => void;
-  onDragStart: () => void;
-  onDragEnter: () => void;
-  onDragOverExercise: (exerciseId: string) => void;
-  onDragEnd: () => void;
   onSetChange: (setIndex: number, patch: Partial<SetEntry>) => void;
   onAddSet: () => void;
   onRemoveSet: () => void;
@@ -32,55 +27,24 @@ export function ExerciseRow({
   exercise,
   history,
   expanded,
-  dragging,
   onToggle,
-  onDragStart,
-  onDragEnter,
-  onDragOverExercise,
-  onDragEnd,
   onSetChange,
   onAddSet,
   onRemoveSet,
   onNoteChange,
   onRemove,
 }: ExerciseRowProps) {
-  const [touchDragging, setTouchDragging] = useState(false);
-
-  function handlePointerDown(event: PointerEvent<HTMLSpanElement>) {
-    event.stopPropagation();
-    setTouchDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    onDragStart();
-  }
-
-  function handlePointerMove(event: PointerEvent<HTMLSpanElement>) {
-    if (!touchDragging) return;
-    const target = document
-      .elementFromPoint(event.clientX, event.clientY)
-      ?.closest<HTMLElement>('[data-exercise-drop-id]');
-    const targetId = target?.dataset.exerciseDropId;
-    if (targetId && targetId !== exercise.exerciseId) onDragOverExercise(targetId);
-  }
-
-  function handlePointerUp() {
-    if (!touchDragging) return;
-    setTouchDragging(false);
-    onDragEnd();
-  }
+  const dragControls = useDragControls();
 
   return (
-    <div
+    <Reorder.Item
+      as="div"
+      value={exercise.exerciseId}
       id={`exercise-${exercise.exerciseId}`}
-      data-exercise-drop-id={exercise.exerciseId}
-      draggable
-      onDragStart={onDragStart}
-      onDragEnter={(event) => {
-        event.preventDefault();
-        onDragEnter();
-      }}
-      onDragOver={(event) => event.preventDefault()}
-      onDragEnd={onDragEnd}
-      className={`app-exercise-card app-exercise-card-animated ${dragging ? 'app-exercise-card-dragging' : ''} ${expanded ? 'app-exercise-card-expanded' : 'p-0'}`}
+      dragControls={dragControls}
+      dragListener={false}
+      whileDrag={{ scale: 0.975, boxShadow: '0 24px 60px rgba(0, 0, 0, 0.36)', zIndex: 20 }}
+      className={`app-exercise-card app-exercise-card-animated relative ${expanded ? 'app-exercise-card-expanded' : 'p-0'}`}
     >
       <button
         type="button"
@@ -92,11 +56,11 @@ export function ExerciseRow({
       >
         <span className="flex min-w-0 items-center gap-3">
           <span
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            className={`flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-2xl bg-[var(--app-surface-strong)] text-[var(--app-text-muted)] transition-all duration-200 ${touchDragging ? 'scale-110 text-[var(--app-accent)]' : ''}`}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              dragControls.start(event);
+            }}
+            className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-2xl bg-[var(--app-surface-strong)] text-[var(--app-text-muted)] transition-all duration-200 active:scale-110 active:text-[var(--app-accent)]"
             aria-label={`${exercise.name} verschieben`}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" className="h-5 w-5">
@@ -209,6 +173,6 @@ export function ExerciseRow({
       />
         </div>
       </div>
-    </div>
+    </Reorder.Item>
   );
 }
