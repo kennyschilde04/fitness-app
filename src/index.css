@@ -338,7 +338,6 @@ button {
 
 .app-exercise-card-animated {
   transition:
-    transform 220ms ease,
     opacity 220ms ease,
     padding 280ms ease,
     border-color 220ms ease,
@@ -347,12 +346,6 @@ button {
 
 .app-exercise-card-expanded {
   border-color: var(--app-border-strong);
-}
-
-.app-exercise-card-dragging {
-  opacity: 0.58;
-  transform: scale(0.975) rotate(-0.6deg);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.36);
 }
 
 .app-exercise-accordion {
