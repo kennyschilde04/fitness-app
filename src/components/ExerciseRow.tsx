@@ -43,6 +43,7 @@ export function ExerciseRow({
       id={`exercise-${exercise.exerciseId}`}
       dragControls={dragControls}
       dragListener={false}
+      layout="position"
       whileDrag={{ scale: 0.975, boxShadow: '0 24px 60px rgba(0, 0, 0, 0.36)', zIndex: 20 }}
       className={`app-exercise-card app-exercise-card-animated relative ${expanded ? 'app-exercise-card-expanded' : 'p-0'}`}
     >
