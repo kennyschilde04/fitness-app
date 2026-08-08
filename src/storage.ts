@@ -158,3 +158,58 @@ export function loadData(): AppData {
 export function saveData(data: AppData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
+
+const EXPORT_VERSION = 1;
+
+interface ExportPayload {
+  app: 'gym-tracker';
+  version: number;
+  exportedAt: string;
+  data: AppData;
+}
+
+export function buildExport(data: AppData): string {
+  const payload: ExportPayload = {
+    app: 'gym-tracker',
+    version: EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    data,
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+export function exportFileName(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `gym-tracker-${y}-${m}-${d}.json`;
+}
+
+/**
+ * Liest eine Sicherung ein. Akzeptiert sowohl das Export-Format als auch ein
+ * nacktes AppData-Objekt. Gibt null zurück, wenn die Datei nicht passt —
+ * lieber nichts importieren als vorhandene Daten mit Müll überschreiben.
+ */
+export function parseImport(raw: string): AppData | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const container = parsed as Partial<ExportPayload> & Partial<AppData>;
+  const candidate = (container.data ?? container) as Partial<AppData>;
+
+  if (!Array.isArray(candidate.units)) return null;
+  if (!Array.isArray(candidate.exercises)) return null;
+  if (!Array.isArray(candidate.sessions)) return null;
+
+  return {
+    units: candidate.units,
+    exercises: candidate.exercises,
+    sessions: candidate.sessions,
+  };
+}

@@ -315,6 +315,11 @@ export function useAppData() {
     setData(next);
   }, []);
 
+  const replaceData = useCallback((next: AppData) => {
+    saveData(next);
+    setData(next);
+  }, []);
+
   const getRecentSessions = useCallback(
     (unitId: string, limit = 10): Session[] =>
       data.sessions
@@ -396,5 +401,6 @@ export function useAppData() {
     resetToDemoData,
     resetToFullDemoData,
     resetToEmptyData,
+    replaceData,
   };
 }

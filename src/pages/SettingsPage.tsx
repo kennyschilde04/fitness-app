@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
-import { STORAGE_KEY } from '../storage';
+import { STORAGE_KEY, buildExport, exportFileName, parseImport } from '../storage';
 
 const APP_THEMES: { id: Theme; name: string; subtitle: string; colors: string[] }[] = [
   { id: 'dark', name: 'Dunkel', subtitle: 'Gym Mode', colors: ['#0a0a0a', '#bef264', '#fb923c'] },
@@ -41,6 +41,13 @@ function SettingsBadge({ children }: { children: string }) {
   );
 }
 
+interface ConfirmAction {
+  titel: string;
+  text: string;
+  bestaetigen: string;
+  ausfuehren: () => void;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -49,8 +56,11 @@ function formatBytes(bytes: number): string {
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { resetToDemoData, resetToEmptyData, resetToFullDemoData } = useAppData();
+  const { units, exercises, sessions, resetToDemoData, resetToEmptyData, resetToFullDemoData, replaceData } =
+    useAppData();
   const [view, setView] = useState<SettingsView>('overview');
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
     return APP_LANGUAGES.some((item) => item.id === saved) ? (saved as AppLanguage) : 'de';
@@ -93,28 +103,98 @@ export function SettingsPage() {
     showToast('Cache wurde geleert');
   }
 
+  /**
+   * Fragt nur nach, wenn wirklich etwas verloren gehen kann. Bei leerer App
+   * wäre die Rückfrage nur im Weg.
+   */
+  function mitRueckfrage(action: ConfirmAction) {
+    if (sessions.length === 0) {
+      action.ausfuehren();
+      return;
+    }
+    setConfirmAction(action);
+  }
+
+  function exportData() {
+    const inhalt = buildExport({ units, exercises, sessions });
+    const blob = new Blob([inhalt], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = exportFileName();
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast(`${sessions.length} Trainings gesichert`);
+  }
+
+  async function importFile(file: File) {
+    const eingelesen = parseImport(await file.text());
+    if (!eingelesen) {
+      showToast('Datei nicht lesbar — nichts geändert');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Sicherung einspielen?',
+      text: `Ersetzt deine aktuellen ${sessions.length} Trainings durch ${eingelesen.sessions.length} aus der Datei.`,
+      bestaetigen: 'Einspielen',
+      ausfuehren: () => {
+        replaceData(eingelesen);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${eingelesen.sessions.length} Trainings geladen`);
+      },
+    });
+  }
+
   function clearAppData() {
-    resetToEmptyData();
-    refreshStorageStats((value) => value + 1);
-    showToast('Appdaten wurden gelöscht');
+    mitRueckfrage({
+      titel: 'Alle Appdaten löschen?',
+      text: `${sessions.length} Trainings, ${exercises.length} Übungen und ${units.length} Einheiten werden entfernt. Vorher exportieren, wenn du sie behalten willst.`,
+      bestaetigen: 'Löschen',
+      ausfuehren: () => {
+        resetToEmptyData();
+        refreshStorageStats((value) => value + 1);
+        showToast('Appdaten wurden gelöscht');
+      },
+    });
   }
 
   function loadDemoData(message: string) {
-    resetToDemoData();
-    refreshStorageStats((value) => value + 1);
-    showToast(message);
+    mitRueckfrage({
+      titel: 'Demo-Daten laden?',
+      text: `Deine ${sessions.length} eigenen Trainings werden dabei überschrieben.`,
+      bestaetigen: 'Überschreiben',
+      ausfuehren: () => {
+        resetToDemoData();
+        refreshStorageStats((value) => value + 1);
+        showToast(message);
+      },
+    });
   }
 
   function loadFullDemoData() {
-    resetToFullDemoData();
-    refreshStorageStats((value) => value + 1);
-    showToast('2 Monate Demo wurden geladen');
+    mitRueckfrage({
+      titel: '2 Monate Demo laden?',
+      text: `Deine ${sessions.length} eigenen Trainings werden dabei überschrieben.`,
+      bestaetigen: 'Überschreiben',
+      ausfuehren: () => {
+        resetToFullDemoData();
+        refreshStorageStats((value) => value + 1);
+        showToast('2 Monate Demo wurden geladen');
+      },
+    });
   }
 
   function loadEmptyApp() {
-    resetToEmptyData();
-    refreshStorageStats((value) => value + 1);
-    showToast('Leere App ist aktiv');
+    mitRueckfrage({
+      titel: 'Leere App testen?',
+      text: `Deine ${sessions.length} eigenen Trainings werden dabei entfernt.`,
+      bestaetigen: 'Leeren',
+      ausfuehren: () => {
+        resetToEmptyData();
+        refreshStorageStats((value) => value + 1);
+        showToast('Leere App ist aktiv');
+      },
+    });
   }
 
   function setWeightUnit(unit: WeightUnit) {
@@ -533,6 +613,46 @@ export function SettingsPage() {
             </section>
 
             <section className="mt-6">
+              <p className="mb-3 text-sm font-black">Sicherung</p>
+              <div className="grid gap-3">
+                <button onClick={exportData} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Daten exportieren</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      {sessions.length} Trainings als Datei sichern
+                    </span>
+                  </span>
+                  <SettingsBadge>Export</SettingsBadge>
+                </button>
+                <button onClick={() => importInputRef.current?.click()} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Sicherung einspielen</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      Ersetzt die Daten auf diesem Gerät
+                    </span>
+                  </span>
+                  <SettingsBadge>Import</SettingsBadge>
+                </button>
+              </div>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  // Wert zurücksetzen, sonst löst dieselbe Datei kein change mehr aus.
+                  event.target.value = '';
+                  if (file) void importFile(file);
+                }}
+              />
+              <p className="app-muted mt-3 text-xs font-semibold">
+                Die Daten liegen pro Adresse getrennt. Beim Testen auf einer anderen URL ist die App leer — über
+                Export und Import nimmst du deinen Stand mit.
+              </p>
+            </section>
+
+            <section className="mt-6">
               <p className="mb-3 text-sm font-black">Speicher-Aktionen</p>
               <div className="grid gap-3">
                 <button onClick={clearCache} className="app-list-button">
@@ -648,6 +768,29 @@ export function SettingsPage() {
           </>
         )}
       </main>
+
+      {confirmAction && (
+        <div className="app-sheet-backdrop" onClick={() => setConfirmAction(null)}>
+          <div className="app-card w-full max-w-md p-6" onClick={(event) => event.stopPropagation()}>
+            <p className="text-xl font-black">{confirmAction.titel}</p>
+            <p className="app-muted mt-3 text-sm font-semibold">{confirmAction.text}</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button onClick={() => setConfirmAction(null)} className="app-secondary-button">
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  confirmAction.ausfuehren();
+                  setConfirmAction(null);
+                }}
+                className="app-danger-button"
+              >
+                {confirmAction.bestaetigen}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AppDock active="settings" />
     </div>
