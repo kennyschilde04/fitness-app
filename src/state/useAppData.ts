@@ -1,5 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
-import { demoData, emptyData, fullDemoData, loadData, saveData } from '../storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type DataSource,
+  demoData,
+  emptyData,
+  fullDemoData,
+  loadData,
+  readDataSource,
+  saveData,
+  savePlanSlot,
+  writeAutoBackup,
+  writeDataSource,
+} from '../storage';
+import { hochladenWennVerbunden } from './driveSync';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
@@ -32,6 +44,31 @@ export function useAppData() {
   useEffect(() => {
     saveData(data);
   }, [data]);
+
+  // Die resetTo*-Funktionen sind bewusst ohne Abhängigkeiten. Über die Ref
+  // kommen sie trotzdem an den aktuellen Stand, um ihn vor dem Überschreiben
+  // zu sichern.
+  const currentData = useRef(data);
+  currentData.current = data;
+
+  const [source, setSource] = useState<DataSource>(() => readDataSource());
+
+  // Eigene Stände werden laufend in den Plan-Slot gespiegelt. Dadurch braucht
+  // es keinen Sichern-Button: der Plan ist immer der letzte eigene Stand.
+  useEffect(() => {
+    if (source !== 'eigen') return;
+    if (data.sessions.length === 0) return;
+    savePlanSlot(data);
+    hochladenWennVerbunden(data);
+  }, [data, source]);
+
+  const replaceAll = useCallback((next: AppData, nextSource: DataSource) => {
+    writeAutoBackup(currentData.current);
+    saveData(next);
+    writeDataSource(nextSource);
+    setSource(nextSource);
+    setData(next);
+  }, []);
 
   const getSessionForDate = useCallback(
     (date: string): Session | undefined => data.sessions.find((s) => s.date === date),
@@ -297,23 +334,14 @@ export function useAppData() {
     }));
   }, []);
 
-  const resetToDemoData = useCallback(() => {
-    const next = demoData();
-    saveData(next);
-    setData(next);
-  }, []);
+  const resetToDemoData = useCallback(() => replaceAll(demoData(), 'demo'), [replaceAll]);
 
-  const resetToFullDemoData = useCallback(() => {
-    const next = fullDemoData();
-    saveData(next);
-    setData(next);
-  }, []);
+  const resetToFullDemoData = useCallback(() => replaceAll(fullDemoData(), 'demo'), [replaceAll]);
 
-  const resetToEmptyData = useCallback(() => {
-    const next = emptyData();
-    saveData(next);
-    setData(next);
-  }, []);
+  const resetToEmptyData = useCallback(() => replaceAll(emptyData(), 'demo'), [replaceAll]);
+
+  /** Eigene Daten: Import oder der zurückgeholte Plan. */
+  const replaceData = useCallback((next: AppData) => replaceAll(next, 'eigen'), [replaceAll]);
 
   const getRecentSessions = useCallback(
     (unitId: string, limit = 10): Session[] =>
@@ -396,5 +424,7 @@ export function useAppData() {
     resetToDemoData,
     resetToFullDemoData,
     resetToEmptyData,
+    replaceData,
+    source,
   };
 }

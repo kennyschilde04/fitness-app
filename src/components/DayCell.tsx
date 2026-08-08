@@ -40,20 +40,20 @@ export function DayCell({ date, unit, session, active = false, onClick, onLongPr
       onContextMenu={(event) => event.preventDefault()}
       className={`relative flex aspect-29/36 h-[var(--week-cell-height)] w-auto flex-col overflow-hidden rounded-3xl border p-3 text-left shadow-lg shadow-black/15 transition-all duration-150 active:scale-95
         ${colors ? `${colors.bg} ${colors.border}` : 'border-neutral-800 bg-neutral-900/80 hover:border-neutral-700 light:bg-white light:hover:border-neutral-300'}
-        ${active ? 'border-lime-300 bg-neutral-900 shadow-[inset_0_0_0_2px_rgba(190,242,100,0.95)] light:border-lime-500 light:shadow-[inset_0_0_0_2px_rgba(132,204,22,0.9)]' : ''}
+        ${active ? 'app-accent-active bg-neutral-900 light:bg-white' : ''}
       `}
     >
-      {active && <span className="absolute inset-x-3 top-0 h-1 rounded-b-full bg-lime-300 light:bg-lime-500" />}
+      {active && <span className="app-accent-dot absolute inset-x-3 top-0 h-1 rounded-b-full" />}
       <div className="flex w-full items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-semibold uppercase text-neutral-500 light:text-neutral-500">
             {weekdayShort(date)}
           </div>
-          <div className={`mt-1 text-3xl font-black leading-none ${today ? 'text-lime-300 light:text-lime-600' : 'text-neutral-100 light:text-neutral-900'}`}>
+          <div className={`mt-1 text-3xl font-black leading-none ${today ? 'app-accent-text' : 'text-neutral-100 light:text-neutral-900'}`}>
             {date.getDate()}
           </div>
         </div>
-        {today && <span className="mt-0.5 h-2 w-2 rounded-full bg-lime-300 light:bg-lime-500" aria-label="Heute" />}
+        {today && <span className="app-accent-dot mt-0.5 h-2 w-2 rounded-full" aria-label="Heute" />}
       </div>
 
       <div className="mt-auto w-full">
@@ -62,7 +62,7 @@ export function DayCell({ date, unit, session, active = false, onClick, onLongPr
             <span className={`block truncate text-sm font-black leading-tight ${colors!.text}`}>{unit.name}</span>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10 light:bg-neutral-200">
               <div
-                className="h-full rounded-full bg-current text-lime-300"
+                className="app-accent-dot h-full rounded-full"
                 style={{ width: `${Math.min(100, Math.max(24, completedSets * 8))}%` }}
               />
             </div>

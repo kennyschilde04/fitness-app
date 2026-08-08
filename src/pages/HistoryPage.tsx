@@ -94,11 +94,11 @@ function ActivityMonth({ sessions, units }: { sessions: Session[]; units: UnitDe
         </div>
         <div className="flex gap-2">
           <div className="app-stat-badge">
-            <p className="text-lg font-black text-lime-300 light:text-lime-700">{activeDays}/{daysInMonth}</p>
+            <p className="text-lg font-black app-accent-text">{activeDays}/{daysInMonth}</p>
             <p className="app-muted text-[10px] font-bold uppercase">Tage</p>
           </div>
           <div className="app-stat-badge">
-            <p className="text-lg font-black text-lime-300 light:text-lime-700">{formatVolume(monthVolume)}</p>
+            <p className="text-lg font-black app-accent-text">{formatVolume(monthVolume)}</p>
             <p className="app-muted text-[10px] font-bold uppercase">Monat</p>
           </div>
         </div>
@@ -193,7 +193,7 @@ function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
             <p className="app-muted mt-2 text-xs font-semibold">{entry.entries.length} Einträge</p>
           </div>
           <div className="app-stat-badge">
-            <p className="text-sm font-black text-lime-300 light:text-lime-700">{formatVolume(latestVolume)}</p>
+            <p className="text-sm font-black app-accent-text">{formatVolume(latestVolume)}</p>
             <p className="app-muted text-[10px] font-bold uppercase">zuletzt</p>
           </div>
         </div>
@@ -230,7 +230,7 @@ function ExerciseHistoryCard({ entry }: { entry: ExerciseHistoryEntry }) {
                 <p className="app-muted mt-2 text-sm font-semibold">{entry.entries.length} Einträge gesamt</p>
               </div>
               <div className="app-stat-badge">
-                <p className="text-sm font-black text-lime-300 light:text-lime-700">{formatVolume(latestVolume)}</p>
+                <p className="text-sm font-black app-accent-text">{formatVolume(latestVolume)}</p>
                 <p className="app-muted text-[10px] font-bold uppercase">zuletzt</p>
               </div>
             </div>
@@ -568,7 +568,7 @@ export function HistoryPage() {
                 <p className="app-muted mt-1 text-xs font-bold">Sätze</p>
               </div>
               <div className="app-card p-5">
-                <p className="text-3xl font-black text-lime-300 light:text-lime-700">{currentWeekSessions.length}/7</p>
+                <p className="text-3xl font-black app-accent-text">{currentWeekSessions.length}/7</p>
                 <p className="app-muted mt-1 text-xs font-bold">Woche</p>
               </div>
             </section>
@@ -579,7 +579,7 @@ export function HistoryPage() {
                   <p className="text-sm font-black">Volumen</p>
                   <p className="app-muted mt-1 text-xs font-semibold">Alle erfassten Sätze</p>
                 </div>
-                <p className="text-2xl font-black text-lime-300 light:text-lime-700">{formatVolume(totalVolume)}</p>
+                <p className="text-2xl font-black app-accent-text">{formatVolume(totalVolume)}</p>
               </div>
               <div className="app-muted mt-3 flex items-center justify-between text-[10px] font-bold uppercase">
                 <span>älter</span>

@@ -42,7 +42,7 @@ export function Header({ backLabel, title }: HeaderProps) {
           className="flex items-center gap-2 rounded-2xl py-1 transition-transform active:scale-95"
           aria-label="Zur Startseite"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-lime-300 text-sm font-black text-neutral-950 shadow-lg shadow-lime-300/20 light:bg-lime-500 light:text-white">
+          <span className="app-accent-bg flex h-9 w-9 items-center justify-center rounded-2xl text-sm font-black shadow-lg">
             GT
           </span>
         </button>

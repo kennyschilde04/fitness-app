@@ -9,6 +9,42 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Gym Tracker</title>
+    <script>
+      // Theme vor dem ersten Paint setzen. useTheme() vergibt die Klasse erst
+      // in einem Effect — ohne das hier zeigt jeder Reload kurz das Default-
+      // Theme, bevor das gespeicherte greift.
+      (function () {
+        try {
+          var themes = ['dark', 'purple', 'light', 'midnight', 'ember', 'mint', 'mono'];
+          var stored = localStorage.getItem('gym-tracker-theme');
+          var theme = themes.indexOf(stored) === -1 ? 'dark' : stored;
+          document.documentElement.classList.add(theme);
+          if (theme === 'light' || theme === 'mint') {
+            document.documentElement.classList.add('light');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+
+      // Sichtbare Viewport-Höhe selbst messen und als --app-viewport-height
+      // bereitstellen. Mobile Browser legen 100dvh/100%/100vh unterschiedlich
+      // aus, solange die URL-Leiste ein- oder ausgeklappt wird — dann wird die
+      // App höher als der sichtbare Bereich und der Inhalt rutscht unter das
+      // Dock. visualViewport.height ist der tatsächlich sichtbare Bereich.
+      (function () {
+        function apply() {
+          var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+          document.documentElement.style.setProperty('--app-viewport-height', h + 'px');
+        }
+        apply();
+        window.addEventListener('resize', apply);
+        window.addEventListener('orientationchange', apply);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', apply);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

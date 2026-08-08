@@ -140,21 +140,239 @@ export function emptyData(): AppData {
   return { units: [], exercises: [], sessions: [] };
 }
 
+export const RESCUE_PREFIX = 'gym-tracker-rescue-';
+
+/**
+ * Legt unlesbare Rohdaten beiseite, bevor die App mit leerem Zustand
+ * weiterläuft. Ohne das würde useAppData den leeren Zustand sofort über die
+ * beschädigten Daten schreiben und sie damit endgültig vernichten.
+ */
+function stashRescue(raw: string): void {
+  try {
+    localStorage.setItem(`${RESCUE_PREFIX}${new Date().toISOString()}`, raw);
+  } catch {
+    // Speicher voll oder gesperrt — dann ist die Rettung nicht möglich.
+  }
+}
+
 export function loadData(): AppData {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyData();
   try {
     const parsed = JSON.parse(raw) as AppData;
+    if (!parsed || typeof parsed !== 'object') throw new Error('kein Objekt');
+    if (!Array.isArray(parsed.sessions) && parsed.sessions !== undefined) {
+      throw new Error('sessions unbrauchbar');
+    }
     return {
       units: parsed.units ?? structuredClone(DEFAULT_UNITS),
       exercises: parsed.exercises ?? [],
       sessions: parsed.sessions ?? [],
     };
   } catch {
+    stashRescue(raw);
     return emptyData();
   }
 }
 
+export interface RescueEntry {
+  key: string;
+  gespeichertAm: string;
+  bytes: number;
+  wiederherstellbar: boolean;
+  sessions: number | null;
+}
+
+export function listRescueEntries(): RescueEntry[] {
+  return Object.keys(localStorage)
+    .filter((key) => key.startsWith(RESCUE_PREFIX))
+    .map((key) => {
+      const raw = localStorage.getItem(key) ?? '';
+      const wiederhergestellt = parseImport(raw);
+      return {
+        key,
+        gespeichertAm: key.slice(RESCUE_PREFIX.length),
+        bytes: new Blob([raw]).size,
+        wiederherstellbar: wiederhergestellt !== null,
+        sessions: wiederhergestellt ? wiederhergestellt.sessions.length : null,
+      };
+    })
+    .sort((a, b) => (a.gespeichertAm < b.gespeichertAm ? 1 : -1));
+}
+
+export function readRescueRaw(key: string): string | null {
+  return localStorage.getItem(key);
+}
+
+export function deleteRescue(key: string): void {
+  localStorage.removeItem(key);
+}
+
+/**
+ * Benannter Platz für den eigenen Trainingsplan und ein automatischer
+ * Sicherungspunkt, der vor jedem überschreibenden Vorgang angelegt wird.
+ * Beide liegen getrennt vom Hauptspeicher, überstehen also das Laden von
+ * Demo-Daten.
+ */
+const PLAN_SLOT_KEY = 'gym-tracker-slot-plan';
+const AUTO_BACKUP_KEY = 'gym-tracker-auto-backup';
+
+export interface SlotInfo {
+  gespeichertAm: string;
+  sessions: number;
+  units: number;
+  bytes: number;
+}
+
+interface SlotPayload {
+  gespeichertAm: string;
+  data: AppData;
+}
+
+function writeSlot(key: string, data: AppData): void {
+  const payload: SlotPayload = { gespeichertAm: new Date().toISOString(), data };
+  try {
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch {
+    // Speicher voll — der Slot bleibt dann auf dem alten Stand.
+  }
+}
+
+function readSlotInfo(key: string): SlotInfo | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    const payload = JSON.parse(raw) as SlotPayload;
+    const data = parseImport(JSON.stringify(payload.data));
+    if (!data) return null;
+    return {
+      gespeichertAm: payload.gespeichertAm,
+      sessions: data.sessions.length,
+      units: data.units.length,
+      bytes: new Blob([raw]).size,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readSlotData(key: string): AppData | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    const payload = JSON.parse(raw) as SlotPayload;
+    return parseImport(JSON.stringify(payload.data));
+  } catch {
+    return null;
+  }
+}
+
+export function savePlanSlot(data: AppData): void {
+  writeSlot(PLAN_SLOT_KEY, data);
+}
+
+export function planSlotInfo(): SlotInfo | null {
+  return readSlotInfo(PLAN_SLOT_KEY);
+}
+
+export function readPlanSlot(): AppData | null {
+  return readSlotData(PLAN_SLOT_KEY);
+}
+
+export function deletePlanSlot(): void {
+  localStorage.removeItem(PLAN_SLOT_KEY);
+}
+
+/**
+ * Merkt sich, ob der aktuelle Stand die eigenen Daten oder ein Testdatensatz
+ * ist. Nur eigene Stände werden automatisch in den Plan-Slot gespiegelt —
+ * sonst würde ein geladener Demo-Datensatz den Plan überschreiben.
+ */
+const SOURCE_KEY = 'gym-tracker-data-source';
+
+export type DataSource = 'eigen' | 'demo';
+
+export function readDataSource(): DataSource {
+  return localStorage.getItem(SOURCE_KEY) === 'demo' ? 'demo' : 'eigen';
+}
+
+export function writeDataSource(source: DataSource): void {
+  try {
+    localStorage.setItem(SOURCE_KEY, source);
+  } catch {
+    // Ohne Markierung fällt die Automatik auf "eigen" zurück.
+  }
+}
+
+/** Vor jedem überschreibenden Vorgang aufrufen. Leere Stände sind es nicht wert. */
+export function writeAutoBackup(data: AppData): void {
+  if (data.sessions.length === 0) return;
+  writeSlot(AUTO_BACKUP_KEY, data);
+}
+
+export function autoBackupInfo(): SlotInfo | null {
+  return readSlotInfo(AUTO_BACKUP_KEY);
+}
+
+export function readAutoBackup(): AppData | null {
+  return readSlotData(AUTO_BACKUP_KEY);
+}
+
 export function saveData(data: AppData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+const EXPORT_VERSION = 1;
+
+interface ExportPayload {
+  app: 'gym-tracker';
+  version: number;
+  exportedAt: string;
+  data: AppData;
+}
+
+export function buildExport(data: AppData): string {
+  const payload: ExportPayload = {
+    app: 'gym-tracker',
+    version: EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    data,
+  };
+  return JSON.stringify(payload, null, 2);
+}
+
+export function exportFileName(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `gym-tracker-${y}-${m}-${d}.json`;
+}
+
+/**
+ * Liest eine Sicherung ein. Akzeptiert sowohl das Export-Format als auch ein
+ * nacktes AppData-Objekt. Gibt null zurück, wenn die Datei nicht passt —
+ * lieber nichts importieren als vorhandene Daten mit Müll überschreiben.
+ */
+export function parseImport(raw: string): AppData | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  const container = parsed as Partial<ExportPayload> & Partial<AppData>;
+  const candidate = (container.data ?? container) as Partial<AppData>;
+
+  if (!Array.isArray(candidate.units)) return null;
+  if (!Array.isArray(candidate.exercises)) return null;
+  if (!Array.isArray(candidate.sessions)) return null;
+
+  return {
+    units: candidate.units,
+    exercises: candidate.exercises,
+    sessions: candidate.sessions,
+  };
 }

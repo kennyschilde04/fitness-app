@@ -113,8 +113,8 @@ export function WeekCalendar({
                 {formatDayMonth(visibleFocusedDate)}
               </h2>
             </div>
-            <div className="rounded-2xl border border-neutral-800 bg-neutral-950/50 px-3 py-2 text-right light:border-neutral-200 light:bg-white/70">
-              <p className="text-xl font-black text-lime-300 light:text-lime-600">{weekSessions.length}/7</p>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-950/50 px-3 py-2 text-center light:border-neutral-200 light:bg-white/70">
+              <p className="app-accent-text text-xl font-black">{weekSessions.length}/7</p>
               <p className="text-[10px] font-semibold uppercase text-neutral-500">Woche</p>
             </div>
           </div>
@@ -152,7 +152,7 @@ export function WeekCalendar({
               </div>
               <button
                 onClick={() => onDayClick(visibleFocusedDate)}
-                className="app-focus-cta mt-5 h-12 shrink-0 rounded-2xl bg-lime-300 px-4 text-sm font-black text-neutral-950 transition-transform active:scale-95 hover:bg-lime-200 light:bg-lime-500 light:hover:bg-lime-400"
+                className="app-accent-bg app-focus-cta mt-5 h-12 shrink-0 rounded-2xl px-4 text-sm font-black transition-transform active:scale-95"
               >
                 Training öffnen
               </button>
@@ -167,7 +167,7 @@ export function WeekCalendar({
               </div>
               <button
                 onClick={() => onDayClick(visibleFocusedDate)}
-                className="app-focus-cta mt-5 h-12 shrink-0 rounded-2xl border border-lime-300/70 px-4 text-sm font-black text-lime-200 transition-transform active:scale-95 hover:bg-lime-300/10 light:border-lime-500 light:text-lime-700 light:hover:bg-lime-50"
+                className="app-accent-outline app-focus-cta mt-5 h-12 shrink-0 rounded-2xl border px-4 text-sm font-black transition-transform active:scale-95"
               >
                 Training starten
               </button>
