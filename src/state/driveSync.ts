@@ -164,19 +164,36 @@ async function api(pfad: string, init: RequestInit = {}): Promise<Response> {
   return response;
 }
 
-async function findeDatei(): Promise<string | null> {
-  const gemerkt = localStorage.getItem(FILE_ID_KEY);
-  if (gemerkt) return gemerkt;
+/**
+ * Die gemerkte Datei-ID gilt nur für das Konto, mit dem sie gefunden wurde.
+ * Nach einem Kontowechsel zeigt sie in einen fremden App-Ordner und Drive
+ * antwortet mit 404 — deshalb ist `frisch` nötig, um sie zu verwerfen und neu
+ * zu suchen.
+ */
+async function findeDatei(frisch = false): Promise<string | null> {
+  if (!frisch) {
+    const gemerkt = localStorage.getItem(FILE_ID_KEY);
+    if (gemerkt) return gemerkt;
+  }
   const response = await api(
     `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=name='${DATEI}'`,
   );
   const json = (await response.json()) as { files?: { id: string }[] };
   const id = json.files?.[0]?.id ?? null;
   if (id) localStorage.setItem(FILE_ID_KEY, id);
+  else localStorage.removeItem(FILE_ID_KEY);
   return id;
 }
 
+function istNichtGefunden(fehler: unknown): boolean {
+  return fehler instanceof Error && fehler.message.startsWith('Drive 404');
+}
+
 export async function verbinden(): Promise<boolean> {
+  // Beim bewussten Verbinden kann ein anderes Konto gewählt werden. Die
+  // gemerkte Datei-ID des vorigen Kontos wäre dann falsch.
+  localStorage.removeItem(FILE_ID_KEY);
+  zuletztHochgeladen = null;
   const token = await holeToken(false);
   return token !== null;
 }
@@ -191,9 +208,18 @@ export function trennen(): void {
 }
 
 export async function herunterladen(): Promise<DrivePayload | null> {
-  const id = await findeDatei();
+  let id = await findeDatei();
   if (!id) return null;
-  const response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  let response: Response;
+  try {
+    response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  } catch (fehler) {
+    if (!istNichtGefunden(fehler)) throw fehler;
+    // Gemerkte ID gehört zu einem anderen Konto: neu suchen.
+    id = await findeDatei(true);
+    if (!id) return null;
+    response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  }
   const roh = await response.text();
   try {
     const payload = JSON.parse(roh) as DrivePayload;
@@ -211,12 +237,18 @@ export async function hochladen(data: AppData): Promise<string> {
   const id = await findeDatei();
 
   if (id) {
-    await api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: koerper,
-    });
-    return payload.gespeichertAm;
+    try {
+      await api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: koerper,
+      });
+      return payload.gespeichertAm;
+    } catch (fehler) {
+      if (!istNichtGefunden(fehler)) throw fehler;
+      // Gemerkte ID gehört zu einem anderen Konto: unten neu anlegen.
+      localStorage.removeItem(FILE_ID_KEY);
+    }
   }
 
   const grenze = 'gymtracker';
