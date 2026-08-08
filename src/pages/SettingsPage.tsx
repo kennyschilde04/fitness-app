@@ -854,48 +854,6 @@ export function SettingsPage() {
             <section className="app-card mt-8 p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-lg font-black">Kennys Plan</p>
-                  <p className="app-muted mt-2 text-sm font-semibold">
-                    {planSlot
-                      ? `${planSlot.sessions} Trainings, ${planSlot.units} Einheiten · gesichert am ${new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}`
-                      : 'Noch nichts gesichert. Sichere deinen echten Stand, bevor du Demo-Daten testest.'}
-                  </p>
-                </div>
-                <SettingsBadge>Plan</SettingsBadge>
-              </div>
-              <div className="mt-5 grid gap-2">
-                <button onClick={savePlan} className="app-primary-button">
-                  Aktuellen Stand sichern ({sessions.length})
-                </button>
-                {planSlot && (
-                  <>
-                    <button onClick={loadPlan} className="app-secondary-button">
-                      Kennys Plan laden ({planSlot.sessions})
-                    </button>
-                    <button onClick={forgetPlan} className="app-danger-button">
-                      Plan löschen
-                    </button>
-                  </>
-                )}
-              </div>
-            </section>
-
-            {autoBackup && (
-              <section className="app-card mt-4 p-5">
-                <p className="text-base font-black">Letzter Stand vor dem Überschreiben</p>
-                <p className="app-muted mt-2 text-sm font-semibold">
-                  {autoBackup.sessions} Trainings · automatisch gesichert am{' '}
-                  {new Date(autoBackup.gespeichertAm).toLocaleString('de-DE')}
-                </p>
-                <button onClick={restoreAutoBackup} className="app-secondary-button mt-4 w-full">
-                  Zurückholen
-                </button>
-              </section>
-            )}
-
-            <section className="app-card mt-4 p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
                   <p className="text-lg font-black">Demo-Profil</p>
                   <p className="app-muted mt-2 text-sm font-semibold">Realistische 3er-Split-Daten mit Pausen, Schwankungen und Progression.</p>
                 </div>
@@ -960,6 +918,58 @@ export function SettingsPage() {
                   </span>
                   <SettingsBadge>Leeren</SettingsBadge>
                 </button>
+                {planSlot && (
+                  <button onClick={loadPlan} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Kennys Plan</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        {planSlot.sessions} Trainings · gesichert am{' '}
+                        {new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}
+                      </span>
+                    </span>
+                    <SettingsBadge>Laden</SettingsBadge>
+                  </button>
+                )}
+                {autoBackup && (
+                  <button onClick={restoreAutoBackup} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Stand vor dem Überschreiben</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        {autoBackup.sessions} Trainings · automatisch gesichert am{' '}
+                        {new Date(autoBackup.gespeichertAm).toLocaleString('de-DE')}
+                      </span>
+                    </span>
+                    <SettingsBadge>Zurück</SettingsBadge>
+                  </button>
+                )}
+              </div>
+            </section>
+
+            <section className="mt-6">
+              <p className="mb-3 text-sm font-black">Eigener Plan</p>
+              <div className="grid gap-3">
+                <button onClick={savePlan} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Als Kennys Plan sichern</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      {planSlot
+                        ? `Überschreibt die Sicherung mit den aktuellen ${sessions.length} Trainings`
+                        : `Merkt sich die aktuellen ${sessions.length} Trainings, damit Demos sie nicht überschreiben`}
+                    </span>
+                  </span>
+                  <SettingsBadge>Sichern</SettingsBadge>
+                </button>
+                {planSlot && (
+                  <button onClick={forgetPlan} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black text-red-400">Kennys Plan löschen</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Entfernt nur die Sicherung, nicht deine aktuellen Daten
+                      </span>
+                    </span>
+                    <SettingsBadge>Löschen</SettingsBadge>
+                  </button>
+                )}
               </div>
             </section>
           </>
