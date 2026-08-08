@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { useKontoAnmeldung } from '../state/useKontoAnmeldung';
@@ -54,8 +55,10 @@ const APP_LANGUAGES: { id: AppLanguage; name: string; subtitle: string }[] = [
 ];
 
 function SettingsBadge({ children }: { children: string }) {
+  // Feste Mindestbreite und zentrierter Text: sonst wandert die linke Kante
+  // mit der Textlänge und die Spalte wirkt unruhig.
   return (
-    <span className="shrink-0 rounded-full bg-[var(--app-surface-strong)] px-3 py-1 text-xs font-bold text-[var(--app-text-muted)]">
+    <span className="inline-flex min-w-16 shrink-0 items-center justify-center rounded-full bg-[var(--app-surface-strong)] px-3 py-1 text-center text-xs font-bold text-[var(--app-text-muted)]">
       {children}
     </span>
   );
@@ -88,7 +91,11 @@ export function SettingsPage() {
     replaceData,
     wechsleKonto,
   } = useAppData();
-  const [view, setView] = useState<SettingsView>('overview');
+  // Erlaubt es, direkt in einen Unterbereich zu springen — etwa aus dem
+  // Kalender-Hinweis heraus zu den Demo-Daten, statt nur in die Übersicht.
+  const location = useLocation();
+  const zielBereich = (location.state as { view?: SettingsView } | null)?.view;
+  const [view, setView] = useState<SettingsView>(zielBereich ?? 'overview');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const driveKonfiguriert = istKonfiguriert();
@@ -441,7 +448,7 @@ export function SettingsPage() {
                   {activeTheme?.colors.map((color) => (
                     <span key={color} className="h-4 w-4 rounded-full border border-white/20" style={{ backgroundColor: color }} />
                   ))}
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted h-5 w-5">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted app-list-chevron h-5 w-5">
                     <path d="M9 18l6-6-6-6" />
                   </svg>
                 </span>
@@ -458,7 +465,7 @@ export function SettingsPage() {
                   </span>
                   <span className="flex items-center gap-2">
                     <SettingsBadge>{language.toUpperCase()}</SettingsBadge>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted h-5 w-5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted app-list-chevron h-5 w-5">
                       <path d="M9 18l6-6-6-6" />
                     </svg>
                   </span>
@@ -490,7 +497,7 @@ export function SettingsPage() {
                   </span>
                   <span className="flex items-center gap-2">
                     <SettingsBadge>{weightUnit}</SettingsBadge>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted h-5 w-5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted app-list-chevron h-5 w-5">
                       <path d="M9 18l6-6-6-6" />
                     </svg>
                   </span>
@@ -504,7 +511,7 @@ export function SettingsPage() {
                   </span>
                   <span className="flex items-center gap-2">
                     <SettingsBadge>{restTimerEnabled ? 'An' : 'Aus'}</SettingsBadge>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted h-5 w-5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted app-list-chevron h-5 w-5">
                       <path d="M9 18l6-6-6-6" />
                     </svg>
                   </span>
@@ -522,7 +529,7 @@ export function SettingsPage() {
                   </span>
                   <span className="flex items-center gap-2">
                     <SettingsBadge>Lokal</SettingsBadge>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted h-5 w-5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted app-list-chevron h-5 w-5">
                       <path d="M9 18l6-6-6-6" />
                     </svg>
                   </span>
@@ -543,7 +550,7 @@ export function SettingsPage() {
                   </span>
                   <span className="flex items-center gap-2">
                     <SettingsBadge>Dev</SettingsBadge>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted h-5 w-5">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="app-muted app-list-chevron h-5 w-5">
                       <path d="M9 18l6-6-6-6" />
                     </svg>
                   </span>

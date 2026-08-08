@@ -727,6 +727,7 @@ button {
 }
 
 .app-list-button {
+  position: relative;
   display: flex;
   width: 100%;
   align-items: center;
@@ -735,8 +736,20 @@ button {
   border-radius: var(--app-radius-lg);
   background: var(--app-surface-soft);
   padding: 1rem;
+  /* Platz für den Pfeil ist immer reserviert, auch ohne Pfeil. Sonst sitzt
+     das Badge in Zeilen ohne Pfeil weiter rechts als in Zeilen mit. */
+  padding-right: 2.75rem;
   text-align: left;
   transition: transform 150ms ease;
+}
+
+/* Aus dem Fluss genommen, damit die Badge-Kante von seiner Anwesenheit
+   unabhängig ist. */
+.app-list-chevron {
+  position: absolute;
+  right: 0.875rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .app-list-button:active {

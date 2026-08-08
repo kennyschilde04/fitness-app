@@ -196,7 +196,7 @@ export function CalendarPage() {
             </button>
             {anmeldeFehler && <p className="mt-4 text-sm font-bold text-red-400">{anmeldeFehler}</p>}
             <button
-              onClick={() => navigate('/settings')}
+              onClick={() => navigate('/settings', { state: { view: 'demo' } })}
               className="app-muted mt-4 w-full text-xs font-bold underline"
             >
               Oder Demo-Daten ansehen
