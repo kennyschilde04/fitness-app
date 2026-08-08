@@ -788,6 +788,29 @@ export function SettingsPage() {
                   </span>
                   <SettingsBadge>Import</SettingsBadge>
                 </button>
+                {autoBackup && (
+                  <button onClick={restoreAutoBackup} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Stand vor dem Überschreiben</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        {autoBackup.sessions} Trainings · automatisch gesichert am{' '}
+                        {new Date(autoBackup.gespeichertAm).toLocaleString('de-DE')}
+                      </span>
+                    </span>
+                    <SettingsBadge>Zurück</SettingsBadge>
+                  </button>
+                )}
+                {planSlot && (
+                  <button onClick={forgetPlan} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black text-red-400">Kennys Plan löschen</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Entfernt nur die Sicherung, nicht deine aktuellen Daten
+                      </span>
+                    </span>
+                    <SettingsBadge>Löschen</SettingsBadge>
+                  </button>
+                )}
               </div>
               <input
                 ref={importInputRef}
@@ -930,47 +953,10 @@ export function SettingsPage() {
                     <SettingsBadge>Laden</SettingsBadge>
                   </button>
                 )}
-                {autoBackup && (
-                  <button onClick={restoreAutoBackup} className="app-list-button">
-                    <span>
-                      <span className="block text-base font-black">Stand vor dem Überschreiben</span>
-                      <span className="app-muted mt-1 block text-xs font-semibold">
-                        {autoBackup.sessions} Trainings · automatisch gesichert am{' '}
-                        {new Date(autoBackup.gespeichertAm).toLocaleString('de-DE')}
-                      </span>
-                    </span>
-                    <SettingsBadge>Zurück</SettingsBadge>
-                  </button>
-                )}
               </div>
-            </section>
-
-            <section className="mt-6">
-              <p className="mb-3 text-sm font-black">Eigener Plan</p>
-              <div className="grid gap-3">
-                <button onClick={savePlan} className="app-list-button">
-                  <span>
-                    <span className="block text-base font-black">Als Kennys Plan sichern</span>
-                    <span className="app-muted mt-1 block text-xs font-semibold">
-                      {planSlot
-                        ? `Überschreibt die Sicherung mit den aktuellen ${sessions.length} Trainings`
-                        : `Merkt sich die aktuellen ${sessions.length} Trainings, damit Demos sie nicht überschreiben`}
-                    </span>
-                  </span>
-                  <SettingsBadge>Sichern</SettingsBadge>
-                </button>
-                {planSlot && (
-                  <button onClick={forgetPlan} className="app-list-button">
-                    <span>
-                      <span className="block text-base font-black text-red-400">Kennys Plan löschen</span>
-                      <span className="app-muted mt-1 block text-xs font-semibold">
-                        Entfernt nur die Sicherung, nicht deine aktuellen Daten
-                      </span>
-                    </span>
-                    <SettingsBadge>Löschen</SettingsBadge>
-                  </button>
-                )}
-              </div>
+              <button onClick={savePlan} className="app-secondary-button mt-3 w-full">
+                Aktuellen Stand als Kennys Plan sichern
+              </button>
             </section>
           </>
         )}
