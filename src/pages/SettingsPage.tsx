@@ -1,8 +1,30 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
-import { STORAGE_KEY } from '../storage';
+import {
+  herunterladen,
+  hochladen,
+  istKonfiguriert,
+  merkeStand,
+  trennen,
+  verbinden,
+  warVerbunden,
+} from '../state/driveSync';
+import {
+  STORAGE_KEY,
+  autoBackupInfo,
+  buildExport,
+  deletePlanSlot,
+  deleteRescue,
+  exportFileName,
+  listRescueEntries,
+  parseImport,
+  planSlotInfo,
+  readAutoBackup,
+  readPlanSlot,
+  readRescueRaw,
+} from '../storage';
 
 const APP_THEMES: { id: Theme; name: string; subtitle: string; colors: string[] }[] = [
   { id: 'dark', name: 'Dunkel', subtitle: 'Gym Mode', colors: ['#0a0a0a', '#bef264', '#fb923c'] },
@@ -41,6 +63,15 @@ function SettingsBadge({ children }: { children: string }) {
   );
 }
 
+interface ConfirmAction {
+  titel: string;
+  text: string;
+  bestaetigen: string;
+  ausfuehren: () => void;
+  /** Auch bei leerer App fragen — wenn nicht die aktuellen Daten auf dem Spiel stehen. */
+  immerFragen?: boolean;
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -49,8 +80,14 @@ function formatBytes(bytes: number): string {
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { resetToDemoData, resetToEmptyData, resetToFullDemoData } = useAppData();
+  const { units, exercises, sessions, resetToDemoData, resetToEmptyData, resetToFullDemoData, replaceData } =
+    useAppData();
   const [view, setView] = useState<SettingsView>('overview');
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const driveKonfiguriert = istKonfiguriert();
+  const [driveVerbunden, setDriveVerbunden] = useState(() => warVerbunden());
+  const [driveLaeuft, setDriveLaeuft] = useState(false);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
     return APP_LANGUAGES.some((item) => item.id === saved) ? (saved as AppLanguage) : 'de';
@@ -75,6 +112,9 @@ export function SettingsPage() {
       .join('|'),
   ]).size;
   const totalBytes = appDataBytes + cacheBytes;
+  const rescueEntries = listRescueEntries();
+  const planSlot = planSlotInfo();
+  const autoBackup = autoBackupInfo();
   const activeLanguage = APP_LANGUAGES.find((item) => item.id === language) ?? APP_LANGUAGES[0];
 
   function showToast(message: string) {
@@ -93,28 +133,267 @@ export function SettingsPage() {
     showToast('Cache wurde geleert');
   }
 
+  /**
+   * Fragt nur nach, wenn wirklich etwas verloren gehen kann. Bei leerer App
+   * wäre die Rückfrage nur im Weg.
+   */
+  function mitRueckfrage(action: ConfirmAction) {
+    if (sessions.length === 0 && !action.immerFragen) {
+      action.ausfuehren();
+      return;
+    }
+    setConfirmAction(action);
+  }
+
+  function downloadJson(inhalt: string, dateiname: string) {
+    const blob = new Blob([inhalt], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = dateiname;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function restoreRescue(key: string) {
+    const raw = readRescueRaw(key);
+    const eingelesen = raw ? parseImport(raw) : null;
+    if (!eingelesen) {
+      showToast('Nicht automatisch wiederherstellbar');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Gerettete Daten einspielen?',
+      text: `Ersetzt deine aktuellen ${sessions.length} Trainings durch ${eingelesen.sessions.length} aus der Rettung.`,
+      bestaetigen: 'Einspielen',
+      ausfuehren: () => {
+        replaceData(eingelesen);
+        deleteRescue(key);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${eingelesen.sessions.length} Trainings wiederhergestellt`);
+      },
+    });
+  }
+
+  function saveRescueToFile(key: string) {
+    const raw = readRescueRaw(key);
+    if (!raw) return;
+    downloadJson(raw, `gym-tracker-rettung-${key.slice(-24, -5)}.json`);
+    showToast('Rettung als Datei gesichert');
+  }
+
+  function discardRescue(key: string) {
+    mitRueckfrage({
+      titel: 'Rettung verwerfen?',
+      text: 'Die beschädigten Daten werden endgültig entfernt. Vorher als Datei sichern, falls du sie noch brauchst.',
+      bestaetigen: 'Verwerfen',
+      immerFragen: true,
+      ausfuehren: () => {
+        deleteRescue(key);
+        refreshStorageStats((value) => value + 1);
+        showToast('Rettung verworfen');
+      },
+    });
+  }
+
+  /**
+   * Ohne Verbindung: erst mit Google verbinden. Mit Verbindung: den Plan aus
+   * Drive holen. Ist die lokale Fassung neuer, wird das gemeldet statt sie
+   * stillschweigend zu überschreiben.
+   */
+  async function planAntippen() {
+    if (!driveKonfiguriert) {
+      showToast('Keine Google-Client-ID hinterlegt');
+      return;
+    }
+    setDriveLaeuft(true);
+    try {
+      if (!driveVerbunden) {
+        const ok = await verbinden();
+        if (!ok) {
+          showToast('Anmeldung abgebrochen');
+          return;
+        }
+        setDriveVerbunden(true);
+      }
+      const ausDrive = await herunterladen();
+      if (!ausDrive) {
+        const eigene = { units, exercises, sessions };
+        await hochladen(eigene);
+        merkeStand(eigene);
+        showToast(`${sessions.length} Trainings nach Drive gesichert`);
+        return;
+      }
+      mitRueckfrage({
+        titel: 'Plan aus Drive laden?',
+        text: `${ausDrive.data.sessions.length} Trainings, Stand vom ${new Date(ausDrive.gespeichertAm).toLocaleString('de-DE')}. Ersetzt die aktuellen ${sessions.length} Trainings auf diesem Gerät.`,
+        bestaetigen: 'Laden',
+        immerFragen: true,
+        ausfuehren: () => {
+          replaceData(ausDrive.data);
+          // Sonst würde der Abgleich das eben Geladene sofort wieder hochladen.
+          merkeStand(ausDrive.data);
+          refreshStorageStats((value) => value + 1);
+          showToast(`${ausDrive.data.sessions.length} Trainings aus Drive geladen`);
+        },
+      });
+    } catch (fehler) {
+      // Offline oder Anmeldung abgelaufen: die lokale Spiegelung ist dann der
+      // beste verfügbare Stand, statt den Nutzer mit einem Fehler stehenzulassen.
+      const meldung = fehler instanceof Error ? fehler.message : 'Drive nicht erreichbar';
+      if (planSlot) {
+        mitRueckfrage({
+          titel: 'Drive nicht erreichbar',
+          text: `${meldung}. Stattdessen die lokale Kopie laden? ${planSlot.sessions} Trainings, Stand vom ${new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}.`,
+          bestaetigen: 'Lokal laden',
+          immerFragen: true,
+          ausfuehren: loadPlan,
+        });
+        return;
+      }
+      showToast(meldung);
+    } finally {
+      setDriveLaeuft(false);
+    }
+  }
+
+  function driveTrennen() {
+    mitRueckfrage({
+      titel: 'Google-Konto trennen?',
+      text: 'Die App greift danach nicht mehr auf Drive zu. Deine Daten auf diesem Gerät und in Drive bleiben erhalten.',
+      bestaetigen: 'Trennen',
+      immerFragen: true,
+      ausfuehren: () => {
+        trennen();
+        setDriveVerbunden(false);
+        showToast('Google-Konto getrennt');
+      },
+    });
+  }
+
+  function loadPlan() {
+    const geladen = readPlanSlot();
+    if (!geladen) {
+      showToast('Kein gesicherter Plan vorhanden');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Eigener Plan laden?',
+      text: `Ersetzt die aktuellen ${sessions.length} Trainings durch ${geladen.sessions.length} aus deinem Plan.`,
+      bestaetigen: 'Laden',
+      ausfuehren: () => {
+        replaceData(geladen);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${geladen.sessions.length} Trainings geladen`);
+      },
+    });
+  }
+
+  function restoreAutoBackup() {
+    const geladen = readAutoBackup();
+    if (!geladen) {
+      showToast('Kein Sicherungspunkt vorhanden');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Stand vor dem Überschreiben zurückholen?',
+      text: `Ersetzt die aktuellen ${sessions.length} Trainings durch ${geladen.sessions.length} aus dem Sicherungspunkt.`,
+      bestaetigen: 'Zurückholen',
+      ausfuehren: () => {
+        replaceData(geladen);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${geladen.sessions.length} Trainings zurückgeholt`);
+      },
+    });
+  }
+
+  function forgetPlan() {
+    mitRueckfrage({
+      titel: 'Eigener Plan löschen?',
+      text: 'Der gesicherte Plan wird entfernt. Deine aktuellen Daten bleiben unberührt.',
+      bestaetigen: 'Löschen',
+      immerFragen: true,
+      ausfuehren: () => {
+        deletePlanSlot();
+        refreshStorageStats((value) => value + 1);
+        showToast('Eigener Plan gelöscht');
+      },
+    });
+  }
+
+  function exportData() {
+    downloadJson(buildExport({ units, exercises, sessions }), exportFileName());
+    showToast(`${sessions.length} Trainings gesichert`);
+  }
+
+  async function importFile(file: File) {
+    const eingelesen = parseImport(await file.text());
+    if (!eingelesen) {
+      showToast('Datei nicht lesbar — nichts geändert');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Sicherung einspielen?',
+      text: `Ersetzt deine aktuellen ${sessions.length} Trainings durch ${eingelesen.sessions.length} aus der Datei.`,
+      bestaetigen: 'Einspielen',
+      ausfuehren: () => {
+        replaceData(eingelesen);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${eingelesen.sessions.length} Trainings geladen`);
+      },
+    });
+  }
+
   function clearAppData() {
-    resetToEmptyData();
-    refreshStorageStats((value) => value + 1);
-    showToast('Appdaten wurden gelöscht');
+    mitRueckfrage({
+      titel: 'Alle Appdaten löschen?',
+      text: `${sessions.length} Trainings, ${exercises.length} Übungen und ${units.length} Einheiten werden entfernt. Vorher exportieren, wenn du sie behalten willst.`,
+      bestaetigen: 'Löschen',
+      ausfuehren: () => {
+        resetToEmptyData();
+        refreshStorageStats((value) => value + 1);
+        showToast('Appdaten wurden gelöscht');
+      },
+    });
   }
 
   function loadDemoData(message: string) {
-    resetToDemoData();
-    refreshStorageStats((value) => value + 1);
-    showToast(message);
+    mitRueckfrage({
+      titel: 'Demo-Daten laden?',
+      text: `Deine ${sessions.length} eigenen Trainings werden dabei überschrieben.`,
+      bestaetigen: 'Überschreiben',
+      ausfuehren: () => {
+        resetToDemoData();
+        refreshStorageStats((value) => value + 1);
+        showToast(message);
+      },
+    });
   }
 
   function loadFullDemoData() {
-    resetToFullDemoData();
-    refreshStorageStats((value) => value + 1);
-    showToast('2 Monate Demo wurden geladen');
+    mitRueckfrage({
+      titel: '2 Monate Demo laden?',
+      text: `Deine ${sessions.length} eigenen Trainings werden dabei überschrieben.`,
+      bestaetigen: 'Überschreiben',
+      ausfuehren: () => {
+        resetToFullDemoData();
+        refreshStorageStats((value) => value + 1);
+        showToast('2 Monate Demo wurden geladen');
+      },
+    });
   }
 
   function loadEmptyApp() {
-    resetToEmptyData();
-    refreshStorageStats((value) => value + 1);
-    showToast('Leere App ist aktiv');
+    mitRueckfrage({
+      titel: 'Leere App testen?',
+      text: `Deine ${sessions.length} eigenen Trainings werden dabei entfernt.`,
+      bestaetigen: 'Leeren',
+      ausfuehren: () => {
+        resetToEmptyData();
+        refreshStorageStats((value) => value + 1);
+        showToast('Leere App ist aktiv');
+      },
+    });
   }
 
   function setWeightUnit(unit: WeightUnit) {
@@ -532,6 +811,116 @@ export function SettingsPage() {
               </div>
             </section>
 
+            {rescueEntries.length > 0 && (
+              <section className="app-card mt-6 border-red-400/40 p-5">
+                <p className="text-lg font-black text-red-400">Beschädigte Daten gefunden</p>
+                <p className="app-muted mt-2 text-sm font-semibold">
+                  Beim Laden waren die gespeicherten Daten unlesbar. Sie wurden beiseitegelegt, statt überschrieben
+                  zu werden.
+                </p>
+                {rescueEntries.map((entry) => (
+                  <div key={entry.key} className="app-soft-row mt-4 text-left">
+                    <p className="text-sm font-black">
+                      {new Date(entry.gespeichertAm).toLocaleString('de-DE')}
+                    </p>
+                    <p className="app-muted mt-1 text-xs font-semibold">
+                      {formatBytes(entry.bytes)}
+                      {entry.wiederherstellbar
+                        ? ` · ${entry.sessions} Trainings lesbar`
+                        : ' · nicht automatisch lesbar'}
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                      {entry.wiederherstellbar && (
+                        <button onClick={() => restoreRescue(entry.key)} className="app-primary-button">
+                          Wiederherstellen
+                        </button>
+                      )}
+                      <button onClick={() => saveRescueToFile(entry.key)} className="app-secondary-button">
+                        Als Datei sichern
+                      </button>
+                      <button onClick={() => discardRescue(entry.key)} className="app-danger-button">
+                        Verwerfen
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
+
+            <section className="mt-6">
+              <p className="mb-3 text-sm font-black">Sicherung</p>
+              <div className="grid gap-3">
+                <button onClick={exportData} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Daten exportieren</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      {sessions.length} Trainings als Datei sichern
+                    </span>
+                  </span>
+                  <SettingsBadge>Export</SettingsBadge>
+                </button>
+                <button onClick={() => importInputRef.current?.click()} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Sicherung einspielen</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      Ersetzt die Daten auf diesem Gerät
+                    </span>
+                  </span>
+                  <SettingsBadge>Import</SettingsBadge>
+                </button>
+                {autoBackup && (
+                  <button onClick={restoreAutoBackup} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Stand vor dem Überschreiben</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        {autoBackup.sessions} Trainings · automatisch gesichert am{' '}
+                        {new Date(autoBackup.gespeichertAm).toLocaleString('de-DE')}
+                      </span>
+                    </span>
+                    <SettingsBadge>Zurück</SettingsBadge>
+                  </button>
+                )}
+                {planSlot && (
+                  <button onClick={forgetPlan} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black text-red-400">Eigener Plan löschen</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Entfernt nur die lokale Sicherung, nicht deine aktuellen Daten
+                      </span>
+                    </span>
+                    <SettingsBadge>Löschen</SettingsBadge>
+                  </button>
+                )}
+                {driveVerbunden && (
+                  <button onClick={driveTrennen} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Google-Konto trennen</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Kein Abgleich mehr mit Drive; Daten bleiben erhalten
+                      </span>
+                    </span>
+                    <SettingsBadge>Trennen</SettingsBadge>
+                  </button>
+                )}
+              </div>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  // Wert zurücksetzen, sonst löst dieselbe Datei kein change mehr aus.
+                  event.target.value = '';
+                  if (file) void importFile(file);
+                }}
+              />
+              <p className="app-muted mt-3 text-xs font-semibold">
+                Die Daten liegen pro Adresse getrennt. Beim Testen auf einer anderen URL ist die App leer — über
+                Export und Import nimmst du deinen Stand mit.
+              </p>
+            </section>
+
             <section className="mt-6">
               <p className="mb-3 text-sm font-black">Speicher-Aktionen</p>
               <div className="grid gap-3">
@@ -643,11 +1032,47 @@ export function SettingsPage() {
                   </span>
                   <SettingsBadge>Leeren</SettingsBadge>
                 </button>
+                <button onClick={() => void planAntippen()} disabled={driveLaeuft} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Eigener Plan</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      {driveLaeuft
+                        ? 'Verbinde mit Google Drive …'
+                        : driveVerbunden
+                          ? 'Aus deinem Google Drive laden'
+                          : 'Einmalig mit Google verbinden'}
+                    </span>
+                  </span>
+                  <SettingsBadge>{driveVerbunden ? 'Laden' : 'Google'}</SettingsBadge>
+                </button>
               </div>
             </section>
           </>
         )}
       </main>
+
+      {confirmAction && (
+        <div className="app-sheet-backdrop" onClick={() => setConfirmAction(null)}>
+          <div className="app-card w-full max-w-md p-6" onClick={(event) => event.stopPropagation()}>
+            <p className="text-xl font-black">{confirmAction.titel}</p>
+            <p className="app-muted mt-3 text-sm font-semibold">{confirmAction.text}</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button onClick={() => setConfirmAction(null)} className="app-secondary-button">
+                Abbrechen
+              </button>
+              <button
+                onClick={() => {
+                  confirmAction.ausfuehren();
+                  setConfirmAction(null);
+                }}
+                className="app-danger-button"
+              >
+                {confirmAction.bestaetigen}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AppDock active="settings" />
     </div>

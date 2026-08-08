@@ -10,6 +10,9 @@
   --app-text-soft: #a3a3a3;
   --app-accent: #bef264;
   --app-accent-strong: #a3e635;
+  /* Textfarbe auf Akzentflächen. Themes mit dunklem Akzent (light, mint)
+     überschreiben das mit einem hellen Wert. */
+  --app-on-accent: #0a0a0a;
   --app-surface: rgba(255, 255, 255, 0.035);
   --app-surface-strong: rgba(10, 10, 10, 0.6);
   --app-surface-soft: rgba(23, 23, 23, 0.72);
@@ -36,6 +39,7 @@ html.light {
   --app-text-soft: #33402a;
   --app-accent: #65a30d;
   --app-accent-strong: #4d7c0f;
+  --app-on-accent: #f7f8f5;
   --app-surface: rgba(255, 255, 255, 0.9);
   --app-surface-strong: rgba(236, 240, 230, 0.96);
   --app-surface-soft: rgba(247, 248, 245, 0.92);
@@ -100,6 +104,7 @@ html.mint {
   --app-text-soft: #075e56;
   --app-accent: #0f766e;
   --app-accent-strong: #115e59;
+  --app-on-accent: #ecfdf8;
   --app-surface: rgba(255, 255, 255, 0.92);
   --app-surface-strong: rgba(215, 245, 238, 0.96);
   --app-surface-soft: rgba(236, 253, 248, 0.94);
@@ -127,10 +132,14 @@ html.mono {
 html,
 body,
 #root {
+  /* height: 100% löst auf Mobilgeräten gegen den großen Viewport auf (URL-Leiste
+     eingeklappt) und macht das Dokument höher als der sichtbare Bereich. Die
+     gemessene Höhe verhindert das; 100% bleibt Fallback ohne Skript. */
   height: 100%;
-  min-height: 100%;
+  height: var(--app-viewport-height, 100%);
+  min-height: 0;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
   background: var(--app-bg);
 }
 
@@ -244,6 +253,39 @@ button {
   }
 }
 
+/* Akzent-Utilities. Komponenten benutzen ausschließlich diese Klassen statt
+   fester Farbwerte, damit Highlights in jedem Theme mitziehen. */
+.app-accent-text {
+  color: var(--app-accent);
+}
+
+.app-accent-bg {
+  background: var(--app-accent);
+  color: var(--app-on-accent);
+}
+
+.app-accent-bg:hover {
+  background: var(--app-accent-strong);
+}
+
+.app-accent-dot {
+  background: var(--app-accent);
+}
+
+.app-accent-outline {
+  border-color: color-mix(in srgb, var(--app-accent) 70%, transparent);
+  color: var(--app-accent);
+}
+
+.app-accent-outline:hover {
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+}
+
+.app-accent-active {
+  border-color: var(--app-accent);
+  box-shadow: inset 0 0 0 2px var(--app-accent);
+}
+
 /* Die Übungsliste ist der flexible Bereich der Fokus-Karte. Reicht der Platz
    nicht für alle Zeilen, blendet die letzte weich aus statt hart abzureißen. */
 .app-focus-list {
@@ -260,8 +302,11 @@ button {
 
 .app-screen {
   display: flex;
-  min-height: 100dvh;
+  /* 100dvh nur als Fallback, wenn das Skript in index.html nicht lief.
+     --app-viewport-height ist der gemessene sichtbare Bereich. */
   height: 100dvh;
+  height: var(--app-viewport-height, 100dvh);
+  min-height: 0;
   width: 100%;
   flex-direction: column;
   overflow: hidden;
@@ -271,7 +316,13 @@ button {
   padding: var(--app-safe-top) 0 0;
 }
 
-@supports (-webkit-touch-callout: none) {
+/* Höhen-Fallback nur für Browser ohne dvh. Auf iOS löst
+   -webkit-fill-available zur großen Viewport-Höhe auf (URL-Leiste
+   eingeklappt). Direkt nach einem Reload ist die Leiste aber ausgeklappt,
+   der sichtbare Bereich also kleiner — das min-height überstimmt dann
+   height: 100dvh, der Inhalt wird zu hoch und rutscht unter das Dock.
+   Wo dvh unterstützt wird (iOS 15.4+), regelt dvh das bereits korrekt. */
+@supports not (height: 100dvh) {
   html,
   body,
   #root,
@@ -714,16 +765,6 @@ button {
     opacity: 0;
     transform: translateY(calc(-100% - 1rem)) scale(0.96);
   }
-}
-
-html.light .text-lime-300,
-html.mint .text-lime-300 {
-  color: var(--app-accent) !important;
-}
-
-html.light .bg-lime-300,
-html.mint .bg-lime-300 {
-  background-color: var(--app-accent) !important;
 }
 
 html.light .text-white,
