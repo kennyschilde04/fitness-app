@@ -242,7 +242,10 @@ export function trennen(): void {
   tokenAblauf = 0;
   localStorage.removeItem(CONNECTED_KEY);
   localStorage.removeItem(FILE_ID_KEY);
-  localStorage.removeItem(ACCOUNT_KEY);
+  // ACCOUNT_KEY bleibt bewusst stehen: Er sagt nicht aus, ob eine Verbindung
+  // besteht, sondern wem die Daten auf diesem Gerät gehören. Nach dem Trennen
+  // gehören sie weiterhin demselben Konto — ohne diese Information würde der
+  // nächste Login mit einem anderen Konto nicht als Wechsel erkannt.
   zuletztHochgeladen = null;
   if (token) window.google?.accounts?.oauth2?.revoke(token);
 }

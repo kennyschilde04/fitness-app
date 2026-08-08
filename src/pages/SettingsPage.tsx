@@ -19,6 +19,7 @@ import {
   buildExport,
   deletePlanSlot,
   deleteRescue,
+  emptyData,
   exportFileName,
   listRescueEntries,
   parseImport,
@@ -212,6 +213,7 @@ export function SettingsPage() {
     setDriveLaeuft(true);
     try {
       let fremdesKonto = false;
+      let kontoName = driveKonto ?? 'Dieses Konto';
       if (!driveVerbunden) {
         const verbindung = await verbinden();
         if (!verbindung.verbunden) {
@@ -221,6 +223,7 @@ export function SettingsPage() {
         setDriveVerbunden(true);
         fremdesKonto = verbindung.kontoGewechselt;
         if (verbindung.konto) {
+          kontoName = verbindung.konto;
           merkeKonto(verbindung.konto);
           setDriveKonto(verbindung.konto);
         }
@@ -228,23 +231,31 @@ export function SettingsPage() {
 
       const ausDrive = await herunterladen();
 
+      // Kontowechsel: strikte Trennung. Es wird nichts vom vorigen Konto
+      // mitgenommen — der Stand des neuen Kontos ersetzt den Bildschirm,
+      // notfalls leer. Der vorige Stand liegt weiter im Drive seines Kontos
+      // und zusätzlich im automatischen Sicherungspunkt.
+      if (fremdesKonto) {
+        const neuerStand = ausDrive ? ausDrive.data : emptyData();
+        mitRueckfrage({
+          titel: 'Auf dieses Konto wechseln?',
+          text: ausDrive
+            ? `${kontoName} hat ${neuerStand.sessions.length} Trainings. Die ${sessions.length} Trainings des vorherigen Kontos werden von diesem Gerät entfernt.`
+            : `${kontoName} hat noch keinen Plan — die App startet für dieses Konto leer. Die ${sessions.length} Trainings des vorherigen Kontos werden von diesem Gerät entfernt.`,
+          bestaetigen: 'Wechseln',
+          ausfuehren: () => {
+            replaceData(neuerStand);
+            merkeStand(neuerStand);
+            refreshStorageStats((value) => value + 1);
+            showToast(
+              ausDrive ? `${neuerStand.sessions.length} Trainings geladen` : 'Leer gestartet für dieses Konto',
+            );
+          },
+        });
+        return;
+      }
+
       if (!ausDrive) {
-        // Nichts in Drive. Die lokalen Daten gehören einem anderen Konto —
-        // sie ungefragt hochzuladen würde fremde Trainings dorthin kopieren.
-        if (fremdesKonto) {
-          mitRueckfrage({
-            titel: 'Dieses Konto hat noch keinen Plan',
-            text: `Die ${sessions.length} Trainings auf diesem Gerät gehören zu einem anderen Konto. In dieses Konto übernehmen? Wenn nicht, bleibt sein Drive leer.`,
-            bestaetigen: 'Übernehmen',
-            immerFragen: true,
-            ausfuehren: () => {
-              const eigene = { units, exercises, sessions };
-              void hochladen(eigene).then(() => merkeStand(eigene));
-              showToast(`${sessions.length} Trainings übernommen`);
-            },
-          });
-          return;
-        }
         const eigene = { units, exercises, sessions };
         await hochladen(eigene);
         merkeStand(eigene);
