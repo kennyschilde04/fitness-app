@@ -288,11 +288,20 @@ export async function stillAnmelden(): Promise<string | null> {
   }
 }
 
-export async function verbinden(): Promise<Verbindung> {
+export async function verbinden(erzwingeKontoauswahl = false): Promise<Verbindung> {
   // Beim bewussten Verbinden kann ein anderes Konto gewählt werden. Die
   // gemerkte Datei-ID des vorigen Kontos wäre dann falsch.
   localStorage.removeItem(FILE_ID_KEY);
   zuletztHochgeladen = null;
+
+  // Für einen Wechsel muss das vorhandene Token verworfen werden: sonst gibt
+  // der Abruf es sofort zurück und Google zeigt die Kontoauswahl nie.
+  if (erzwingeKontoauswahl) {
+    accessToken = null;
+    tokenAblauf = 0;
+    erteilteRechte = '';
+  }
+
   // Der einzige Ort, an dem ein Google-Fenster aufgehen darf.
   let token = await holeToken('interaktiv');
   if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };

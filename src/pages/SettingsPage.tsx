@@ -215,13 +215,13 @@ export function SettingsPage() {
    * Drive holen. Ist die lokale Fassung neuer, wird das gemeldet statt sie
    * stillschweigend zu überschreiben.
    */
-  async function planAntippen() {
+  async function planAntippen({ kontoWechseln = false }: { kontoWechseln?: boolean } = {}) {
     if (!driveKonfiguriert) {
       showToast('Keine Google-Client-ID hinterlegt');
       return;
     }
     try {
-      const ergebnis = await anmelden();
+      const ergebnis = await anmelden({ kontoWechseln });
       if (!ergebnis.ok) {
         if (ergebnis.grund === 'Anmeldung abgebrochen' || ergebnis.grund.startsWith('Keine Google')) {
           showToast(ergebnis.grund);
@@ -1079,15 +1079,21 @@ export function SettingsPage() {
                   </span>
                   <SettingsBadge>{driveVerbunden ? 'Laden' : 'Google'}</SettingsBadge>
                 </button>
-                <button onClick={() => void planAntippen()} disabled={driveLaeuft} className="app-list-button">
-                  <span>
-                    <span className="block text-base font-black">Konto wechseln</span>
-                    <span className="app-muted mt-1 block text-xs font-semibold">
-                      Anderes Google-Konto wählen; der Stand dieses Geräts wird ersetzt
+                {driveVerbunden && (
+                  <button
+                    onClick={() => void planAntippen({ kontoWechseln: true })}
+                    disabled={driveLaeuft}
+                    className="app-list-button"
+                  >
+                    <span>
+                      <span className="block text-base font-black">Konto wechseln</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Anderes Google-Konto wählen; der Stand dieses Geräts wird ersetzt
+                      </span>
                     </span>
-                  </span>
-                  <SettingsBadge>Wechseln</SettingsBadge>
-                </button>
+                    <SettingsBadge>Wechseln</SettingsBadge>
+                  </button>
+                )}
                 {driveVerbunden && (
                   <button onClick={driveTrennen} className="app-list-button">
                     <span>

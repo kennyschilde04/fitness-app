@@ -27,7 +27,12 @@ export function useKontoAnmeldung(
 ) {
   const [laeuft, setLaeuft] = useState(false);
 
-  const anmelden = useCallback(async (): Promise<AnmeldeErgebnis> => {
+  /**
+   * `kontoWechseln` erzwingt Googles Kontoauswahl. Ohne das würde ein bereits
+   * vorliegendes Token sofort zurückgegeben und immer dasselbe Konto geladen.
+   */
+  const anmelden = useCallback(
+    async ({ kontoWechseln = false }: { kontoWechseln?: boolean } = {}): Promise<AnmeldeErgebnis> => {
     if (!istKonfiguriert()) return { ok: false, grund: 'Keine Google-Client-ID hinterlegt' };
 
     setLaeuft(true);
@@ -36,7 +41,7 @@ export function useKontoAnmeldung(
       // ist der Wert bereits überschrieben.
       const vorherigesKonto = gemerktesKonto();
 
-      const verbindung = await verbinden();
+      const verbindung = await verbinden(kontoWechseln);
       if (!verbindung.verbunden || !verbindung.konto) {
         return { ok: false, grund: 'Anmeldung abgebrochen' };
       }
@@ -55,7 +60,9 @@ export function useKontoAnmeldung(
     } finally {
       setLaeuft(false);
     }
-  }, [wechsleKonto]);
+    },
+    [wechsleKonto],
+  );
 
   return { anmelden, laeuft };
 }
