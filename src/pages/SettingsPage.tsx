@@ -536,7 +536,7 @@ export function SettingsPage() {
                 </button>
                 <button onClick={() => setView('konto')} className="app-list-button">
                   <span>
-                    <span className="block text-base font-black">Eigener Plan</span>
+                    <span className="block text-base font-black">Konto</span>
                     <span className="app-muted mt-1 block text-xs font-semibold">
                       {driveVerbunden && driveKonto ? driveKonto : 'Mit Google verbinden'}
                     </span>
@@ -899,17 +899,6 @@ export function SettingsPage() {
                     <SettingsBadge>Löschen</SettingsBadge>
                   </button>
                 )}
-                {driveVerbunden && (
-                  <button onClick={driveTrennen} className="app-list-button">
-                    <span>
-                      <span className="block text-base font-black">Google-Konto trennen</span>
-                      <span className="app-muted mt-1 block text-xs font-semibold">
-                        Kein Abgleich mehr mit Drive; Daten bleiben erhalten
-                      </span>
-                    </span>
-                    <SettingsBadge>Trennen</SettingsBadge>
-                  </button>
-                )}
               </div>
               <input
                 ref={importInputRef}
@@ -1056,7 +1045,7 @@ export function SettingsPage() {
             </button>
 
             <header>
-              <p className="app-eyebrow">Eigener Plan</p>
+              <p className="app-eyebrow">Konto</p>
               <h1 className="mt-1 text-4xl font-black leading-none">Dein Konto</h1>
               <p className="app-muted mt-4 text-sm font-semibold">
                 Deine Trainings liegen im versteckten App-Ordner deines Google Drive. Jedes Konto hat seinen eigenen

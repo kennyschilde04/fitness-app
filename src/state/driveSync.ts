@@ -307,10 +307,21 @@ export async function herunterladen(): Promise<DrivePayload | null> {
     response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
   } catch (fehler) {
     if (!istNichtGefunden(fehler)) throw fehler;
-    // Gemerkte ID gehört zu einem anderen Konto: neu suchen.
+    // Gemerkte ID gehört zu einem anderen Konto oder die Datei wurde gelöscht:
+    // neu suchen. Findet sich auch dann nichts, ist das kein Fehler, sondern
+    // schlicht "noch kein Plan" — ein 404 darf den Nutzer nicht erreichen.
+    localStorage.removeItem(FILE_ID_KEY);
     id = await findeDatei(true);
     if (!id) return null;
-    response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+    try {
+      response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+    } catch (zweiterFehler) {
+      if (istNichtGefunden(zweiterFehler)) {
+        localStorage.removeItem(FILE_ID_KEY);
+        return null;
+      }
+      throw zweiterFehler;
+    }
   }
   const roh = await response.text();
   try {

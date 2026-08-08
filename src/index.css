@@ -416,6 +416,13 @@ button {
 .app-primary-button,
 .app-secondary-button,
 .app-danger-button {
+  /* Ohne feste Höhe waren die Knöpfe nur so hoch wie ihr Text und dadurch
+     unangenehm flach zu treffen. */
+  display: inline-flex;
+  min-height: 3.25rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
   border-radius: var(--app-radius-md);
   font-weight: 900;
   transition:
