@@ -16,11 +16,15 @@ import { parseImport } from '../storage';
  * gemeldet, welche Seite neuer ist, statt stillschweigend zu überschreiben.
  */
 
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+// openid/email nur, um zu wissen, wem die lokalen Daten gehören. Ohne das
+// kann die App nach einem Kontowechsel nicht unterscheiden, ob der lokale
+// Stand zum angemeldeten Konto gehört — und würde fremde Daten hochladen.
+const SCOPE = 'openid email https://www.googleapis.com/auth/drive.appdata';
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 const DATEI = 'gym-tracker-plan.json';
 const FILE_ID_KEY = 'gym-tracker-drive-file-id';
 const CONNECTED_KEY = 'gym-tracker-drive-connected';
+const ACCOUNT_KEY = 'gym-tracker-drive-account';
 
 /**
  * Die Client-ID ist bei einer Browser-App kein Geheimnis — sie steht ohnehin
@@ -164,21 +168,88 @@ async function api(pfad: string, init: RequestInit = {}): Promise<Response> {
   return response;
 }
 
-async function findeDatei(): Promise<string | null> {
-  const gemerkt = localStorage.getItem(FILE_ID_KEY);
-  if (gemerkt) return gemerkt;
+/**
+ * Die gemerkte Datei-ID gilt nur für das Konto, mit dem sie gefunden wurde.
+ * Nach einem Kontowechsel zeigt sie in einen fremden App-Ordner und Drive
+ * antwortet mit 404 — deshalb ist `frisch` nötig, um sie zu verwerfen und neu
+ * zu suchen.
+ */
+async function findeDatei(frisch = false): Promise<string | null> {
+  if (!frisch) {
+    const gemerkt = localStorage.getItem(FILE_ID_KEY);
+    if (gemerkt) return gemerkt;
+  }
   const response = await api(
     `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=name='${DATEI}'`,
   );
   const json = (await response.json()) as { files?: { id: string }[] };
   const id = json.files?.[0]?.id ?? null;
   if (id) localStorage.setItem(FILE_ID_KEY, id);
+  else localStorage.removeItem(FILE_ID_KEY);
   return id;
 }
 
-export async function verbinden(): Promise<boolean> {
+function istNichtGefunden(fehler: unknown): boolean {
+  return fehler instanceof Error && fehler.message.startsWith('Drive 404');
+}
+
+/** Adresse, der die lokal gespeicherten Daten zugeordnet sind. */
+export function gemerktesKonto(): string | null {
+  return localStorage.getItem(ACCOUNT_KEY);
+}
+
+export function merkeKonto(email: string): void {
+  localStorage.setItem(ACCOUNT_KEY, email);
+}
+
+async function holeKonto(): Promise<string | null> {
+  try {
+    const response = await api('https://www.googleapis.com/oauth2/v3/userinfo');
+    const json = (await response.json()) as { email?: string };
+    return json.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export interface Verbindung {
+  verbunden: boolean;
+  konto: string | null;
+  /** true, wenn die lokalen Daten einem anderen Konto gehören. */
+  kontoGewechselt: boolean;
+}
+
+/**
+ * Versuch beim App-Start, ohne Dialog an ein Token zu kommen. Gelingt das
+ * nicht — kein Netz, abgelaufene Google-Sitzung, nie verbunden — bleibt die
+ * App bewusst ohne Konto und damit leer.
+ */
+export async function stillAnmelden(): Promise<string | null> {
+  if (!istKonfiguriert() || !warVerbunden()) return null;
+  try {
+    const token = await holeToken(true);
+    if (!token) return null;
+    return await holeKonto();
+  } catch {
+    return null;
+  }
+}
+
+export async function verbinden(): Promise<Verbindung> {
+  // Beim bewussten Verbinden kann ein anderes Konto gewählt werden. Die
+  // gemerkte Datei-ID des vorigen Kontos wäre dann falsch.
+  localStorage.removeItem(FILE_ID_KEY);
+  zuletztHochgeladen = null;
   const token = await holeToken(false);
-  return token !== null;
+  if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };
+
+  const konto = await holeKonto();
+  const vorher = gemerktesKonto();
+  return {
+    verbunden: true,
+    konto,
+    kontoGewechselt: Boolean(konto && vorher && konto !== vorher),
+  };
 }
 
 export function trennen(): void {
@@ -187,13 +258,27 @@ export function trennen(): void {
   tokenAblauf = 0;
   localStorage.removeItem(CONNECTED_KEY);
   localStorage.removeItem(FILE_ID_KEY);
+  // ACCOUNT_KEY bleibt bewusst stehen: Er sagt nicht aus, ob eine Verbindung
+  // besteht, sondern wem die Daten auf diesem Gerät gehören. Nach dem Trennen
+  // gehören sie weiterhin demselben Konto — ohne diese Information würde der
+  // nächste Login mit einem anderen Konto nicht als Wechsel erkannt.
+  zuletztHochgeladen = null;
   if (token) window.google?.accounts?.oauth2?.revoke(token);
 }
 
 export async function herunterladen(): Promise<DrivePayload | null> {
-  const id = await findeDatei();
+  let id = await findeDatei();
   if (!id) return null;
-  const response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  let response: Response;
+  try {
+    response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  } catch (fehler) {
+    if (!istNichtGefunden(fehler)) throw fehler;
+    // Gemerkte ID gehört zu einem anderen Konto: neu suchen.
+    id = await findeDatei(true);
+    if (!id) return null;
+    response = await api(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+  }
   const roh = await response.text();
   try {
     const payload = JSON.parse(roh) as DrivePayload;
@@ -211,12 +296,18 @@ export async function hochladen(data: AppData): Promise<string> {
   const id = await findeDatei();
 
   if (id) {
-    await api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: koerper,
-    });
-    return payload.gespeichertAm;
+    try {
+      await api(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: koerper,
+      });
+      return payload.gespeichertAm;
+    } catch (fehler) {
+      if (!istNichtGefunden(fehler)) throw fehler;
+      // Gemerkte ID gehört zu einem anderen Konto: unten neu anlegen.
+      localStorage.removeItem(FILE_ID_KEY);
+    }
   }
 
   const grenze = 'gymtracker';

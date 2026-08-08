@@ -1,14 +1,12 @@
 import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
+import { useKontoAnmeldung } from '../state/useKontoAnmeldung';
 import { type Theme, useTheme } from '../state/useTheme';
 import {
-  herunterladen,
-  hochladen,
+  gemerktesKonto,
   istKonfiguriert,
-  merkeStand,
   trennen,
-  verbinden,
   warVerbunden,
 } from '../state/driveSync';
 import {
@@ -80,14 +78,23 @@ function formatBytes(bytes: number): string {
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { units, exercises, sessions, resetToDemoData, resetToEmptyData, resetToFullDemoData, replaceData } =
-    useAppData();
+  const {
+    units,
+    exercises,
+    sessions,
+    resetToDemoData,
+    resetToEmptyData,
+    resetToFullDemoData,
+    replaceData,
+    wechsleKonto,
+  } = useAppData();
   const [view, setView] = useState<SettingsView>('overview');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const driveKonfiguriert = istKonfiguriert();
   const [driveVerbunden, setDriveVerbunden] = useState(() => warVerbunden());
-  const [driveLaeuft, setDriveLaeuft] = useState(false);
+  const [driveKonto, setDriveKonto] = useState(() => gemerktesKonto());
+  const { anmelden, laeuft: driveLaeuft } = useKontoAnmeldung(wechsleKonto);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
     return APP_LANGUAGES.some((item) => item.id === saved) ? (saved as AppLanguage) : 'de';
@@ -206,37 +213,23 @@ export function SettingsPage() {
       showToast('Keine Google-Client-ID hinterlegt');
       return;
     }
-    setDriveLaeuft(true);
     try {
-      if (!driveVerbunden) {
-        const ok = await verbinden();
-        if (!ok) {
-          showToast('Anmeldung abgebrochen');
+      const ergebnis = await anmelden();
+      if (!ergebnis.ok) {
+        if (ergebnis.grund === 'Anmeldung abgebrochen' || ergebnis.grund.startsWith('Keine Google')) {
+          showToast(ergebnis.grund);
           return;
         }
-        setDriveVerbunden(true);
+        throw new Error(ergebnis.grund);
       }
-      const ausDrive = await herunterladen();
-      if (!ausDrive) {
-        const eigene = { units, exercises, sessions };
-        await hochladen(eigene);
-        merkeStand(eigene);
-        showToast(`${sessions.length} Trainings nach Drive gesichert`);
-        return;
-      }
-      mitRueckfrage({
-        titel: 'Plan aus Drive laden?',
-        text: `${ausDrive.data.sessions.length} Trainings, Stand vom ${new Date(ausDrive.gespeichertAm).toLocaleString('de-DE')}. Ersetzt die aktuellen ${sessions.length} Trainings auf diesem Gerät.`,
-        bestaetigen: 'Laden',
-        immerFragen: true,
-        ausfuehren: () => {
-          replaceData(ausDrive.data);
-          // Sonst würde der Abgleich das eben Geladene sofort wieder hochladen.
-          merkeStand(ausDrive.data);
-          refreshStorageStats((value) => value + 1);
-          showToast(`${ausDrive.data.sessions.length} Trainings aus Drive geladen`);
-        },
-      });
+      setDriveVerbunden(true);
+      setDriveKonto(ergebnis.konto);
+      refreshStorageStats((value) => value + 1);
+      showToast(
+        ergebnis.hatteDrive
+          ? `${ergebnis.sessions} Trainings von ${ergebnis.konto}`
+          : `${ergebnis.konto}: noch kein Plan, leer gestartet`,
+      );
     } catch (fehler) {
       // Offline oder Anmeldung abgelaufen: die lokale Spiegelung ist dann der
       // beste verfügbare Stand, statt den Nutzer mit einem Fehler stehenzulassen.
@@ -252,8 +245,6 @@ export function SettingsPage() {
         return;
       }
       showToast(meldung);
-    } finally {
-      setDriveLaeuft(false);
     }
   }
 
@@ -266,6 +257,7 @@ export function SettingsPage() {
       ausfuehren: () => {
         trennen();
         setDriveVerbunden(false);
+        setDriveKonto(null);
         showToast('Google-Konto getrennt');
       },
     });
@@ -1039,7 +1031,7 @@ export function SettingsPage() {
                       {driveLaeuft
                         ? 'Verbinde mit Google Drive …'
                         : driveVerbunden
-                          ? 'Aus deinem Google Drive laden'
+                          ? `Aus Google Drive laden${driveKonto ? ` · ${driveKonto}` : ''}`
                           : 'Einmalig mit Google verbinden'}
                     </span>
                   </span>
