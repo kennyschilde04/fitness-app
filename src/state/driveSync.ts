@@ -16,11 +16,15 @@ import { parseImport } from '../storage';
  * gemeldet, welche Seite neuer ist, statt stillschweigend zu überschreiben.
  */
 
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+// openid/email nur, um zu wissen, wem die lokalen Daten gehören. Ohne das
+// kann die App nach einem Kontowechsel nicht unterscheiden, ob der lokale
+// Stand zum angemeldeten Konto gehört — und würde fremde Daten hochladen.
+const SCOPE = 'openid email https://www.googleapis.com/auth/drive.appdata';
 const GSI_SRC = 'https://accounts.google.com/gsi/client';
 const DATEI = 'gym-tracker-plan.json';
 const FILE_ID_KEY = 'gym-tracker-drive-file-id';
 const CONNECTED_KEY = 'gym-tracker-drive-connected';
+const ACCOUNT_KEY = 'gym-tracker-drive-account';
 
 /**
  * Die Client-ID ist bei einer Browser-App kein Geheimnis — sie steht ohnehin
@@ -189,13 +193,47 @@ function istNichtGefunden(fehler: unknown): boolean {
   return fehler instanceof Error && fehler.message.startsWith('Drive 404');
 }
 
-export async function verbinden(): Promise<boolean> {
+/** Adresse, der die lokal gespeicherten Daten zugeordnet sind. */
+export function gemerktesKonto(): string | null {
+  return localStorage.getItem(ACCOUNT_KEY);
+}
+
+export function merkeKonto(email: string): void {
+  localStorage.setItem(ACCOUNT_KEY, email);
+}
+
+async function holeKonto(): Promise<string | null> {
+  try {
+    const response = await api('https://www.googleapis.com/oauth2/v3/userinfo');
+    const json = (await response.json()) as { email?: string };
+    return json.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export interface Verbindung {
+  verbunden: boolean;
+  konto: string | null;
+  /** true, wenn die lokalen Daten einem anderen Konto gehören. */
+  kontoGewechselt: boolean;
+}
+
+export async function verbinden(): Promise<Verbindung> {
   // Beim bewussten Verbinden kann ein anderes Konto gewählt werden. Die
   // gemerkte Datei-ID des vorigen Kontos wäre dann falsch.
   localStorage.removeItem(FILE_ID_KEY);
   zuletztHochgeladen = null;
   const token = await holeToken(false);
-  return token !== null;
+  if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };
+
+  const konto = await holeKonto();
+  const vorher = gemerktesKonto();
+  return {
+    verbunden: true,
+    konto,
+    kontoGewechselt: Boolean(konto && vorher && konto !== vorher),
+  };
 }
 
 export function trennen(): void {
@@ -204,6 +242,8 @@ export function trennen(): void {
   tokenAblauf = 0;
   localStorage.removeItem(CONNECTED_KEY);
   localStorage.removeItem(FILE_ID_KEY);
+  localStorage.removeItem(ACCOUNT_KEY);
+  zuletztHochgeladen = null;
   if (token) window.google?.accounts?.oauth2?.revoke(token);
 }
 

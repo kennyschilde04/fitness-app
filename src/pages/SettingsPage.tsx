@@ -3,9 +3,11 @@ import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
 import {
+  gemerktesKonto,
   herunterladen,
   hochladen,
   istKonfiguriert,
+  merkeKonto,
   merkeStand,
   trennen,
   verbinden,
@@ -87,6 +89,7 @@ export function SettingsPage() {
   const importInputRef = useRef<HTMLInputElement>(null);
   const driveKonfiguriert = istKonfiguriert();
   const [driveVerbunden, setDriveVerbunden] = useState(() => warVerbunden());
+  const [driveKonto, setDriveKonto] = useState(() => gemerktesKonto());
   const [driveLaeuft, setDriveLaeuft] = useState(false);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
@@ -208,16 +211,40 @@ export function SettingsPage() {
     }
     setDriveLaeuft(true);
     try {
+      let fremdesKonto = false;
       if (!driveVerbunden) {
-        const ok = await verbinden();
-        if (!ok) {
+        const verbindung = await verbinden();
+        if (!verbindung.verbunden) {
           showToast('Anmeldung abgebrochen');
           return;
         }
         setDriveVerbunden(true);
+        fremdesKonto = verbindung.kontoGewechselt;
+        if (verbindung.konto) {
+          merkeKonto(verbindung.konto);
+          setDriveKonto(verbindung.konto);
+        }
       }
+
       const ausDrive = await herunterladen();
+
       if (!ausDrive) {
+        // Nichts in Drive. Die lokalen Daten gehören einem anderen Konto —
+        // sie ungefragt hochzuladen würde fremde Trainings dorthin kopieren.
+        if (fremdesKonto) {
+          mitRueckfrage({
+            titel: 'Dieses Konto hat noch keinen Plan',
+            text: `Die ${sessions.length} Trainings auf diesem Gerät gehören zu einem anderen Konto. In dieses Konto übernehmen? Wenn nicht, bleibt sein Drive leer.`,
+            bestaetigen: 'Übernehmen',
+            immerFragen: true,
+            ausfuehren: () => {
+              const eigene = { units, exercises, sessions };
+              void hochladen(eigene).then(() => merkeStand(eigene));
+              showToast(`${sessions.length} Trainings übernommen`);
+            },
+          });
+          return;
+        }
         const eigene = { units, exercises, sessions };
         await hochladen(eigene);
         merkeStand(eigene);
@@ -266,6 +293,7 @@ export function SettingsPage() {
       ausfuehren: () => {
         trennen();
         setDriveVerbunden(false);
+        setDriveKonto(null);
         showToast('Google-Konto getrennt');
       },
     });
@@ -1039,7 +1067,7 @@ export function SettingsPage() {
                       {driveLaeuft
                         ? 'Verbinde mit Google Drive …'
                         : driveVerbunden
-                          ? 'Aus deinem Google Drive laden'
+                          ? `Aus Google Drive laden${driveKonto ? ` · ${driveKonto}` : ''}`
                           : 'Einmalig mit Google verbinden'}
                     </span>
                   </span>
