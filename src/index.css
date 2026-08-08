@@ -656,6 +656,23 @@ button {
   color: var(--app-text-muted);
 }
 
+/* Hinweis-Ebene über dem Seiteninhalt. Bewusst z-index 30, also unter dem
+   Dock (40): Der Kalender wird verdeckt statt zusammengedrückt, die
+   Navigation bleibt aber bedienbar. */
+.app-notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: var(--app-page-x);
+  padding-bottom: var(--app-dock-space);
+  background: color-mix(in srgb, var(--app-bg) 84%, transparent);
+  backdrop-filter: blur(6px);
+}
+
 .app-dock-wrap {
   position: fixed;
   right: 0;

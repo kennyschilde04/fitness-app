@@ -144,19 +144,6 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {zustand === 'ohneKonto' && (
-          <div className="app-card mb-4 shrink-0 p-4">
-            <p className="text-base font-black">Kein Konto verbunden</p>
-            <p className="app-muted mt-2 text-sm font-semibold">
-              Deine Trainings liegen in deinem Google Drive und werden erst nach dem Verbinden geladen. Unter
-              Settings → Demo-Daten verbindest du dein Konto — dort lassen sich auch Demo-Daten ansehen.
-            </p>
-            <button onClick={() => navigate('/settings')} className="app-accent-bg mt-4 h-11 w-full rounded-2xl text-sm font-black">
-              Zu den Einstellungen
-            </button>
-          </div>
-        )}
-
         <div className="min-h-0 flex-1">
           {viewMode === 'week' ? (
             <WeekCalendar
@@ -179,6 +166,23 @@ export function CalendarPage() {
           )}
         </div>
       </main>
+
+      {zustand === 'ohneKonto' && (
+        <div className="app-notice-overlay">
+          <div className="app-card w-full max-w-sm p-6 text-center">
+            <p className="text-xl font-black">Kein Konto verbunden</p>
+            <p className="app-muted mt-3 text-sm font-semibold leading-6">
+              Deine Trainings liegen in deinem Google Drive und werden erst nach dem Verbinden geladen.
+            </p>
+            <button
+              onClick={() => navigate('/settings')}
+              className="app-accent-bg mt-6 h-12 w-full rounded-2xl text-sm font-black"
+            >
+              Konto verbinden
+            </button>
+          </div>
+        </div>
+      )}
 
       <AppDock active="today" onTodayClick={goToToday} />
 
