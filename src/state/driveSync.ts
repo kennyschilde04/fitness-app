@@ -240,13 +240,40 @@ export async function hochladen(data: AppData): Promise<string> {
  * Verbindung besteht — die App bleibt dadurch offline voll benutzbar.
  */
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let zuletztHochgeladen: string | null = null;
+
+/** Gültiges Token im Speicher? Nur dann läuft ein Upload im Hintergrund. */
+function tokenLiegtVor(): boolean {
+  return accessToken !== null && Date.now() < tokenAblauf;
+}
+
 export function hochladenWennVerbunden(data: AppData): void {
   if (!istKonfiguriert() || !warVerbunden()) return;
+
+  // Unverändert? Dann nichts tun. Verhindert einen Upload direkt beim Laden
+  // der Seite, obwohl der Nutzer gar nichts geändert hat.
+  const fingerabdruck = JSON.stringify(data);
+  if (fingerabdruck === zuletztHochgeladen) return;
+
+  // Ohne gültiges Token wird hier NICHT nachgefordert: das würde mitten in
+  // einer beliebigen Bedienung ein Google-Fenster aufreißen. Der Abgleich
+  // holt das beim nächsten bewussten Antippen des Plans nach.
+  if (!tokenLiegtVor()) return;
+
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
-    void hochladen(data).catch(() => {
-      // Offline oder Token abgelaufen: der lokale Stand bleibt führend,
-      // der nächste Versuch läuft bei der nächsten Änderung.
-    });
+    void hochladen(data)
+      .then(() => {
+        zuletztHochgeladen = fingerabdruck;
+      })
+      .catch(() => {
+        // Offline: der lokale Stand bleibt führend, der nächste Versuch
+        // läuft bei der nächsten Änderung.
+      });
   }, 2000);
+}
+
+/** Nach einem bewussten Abgleich: verhindert einen sofortigen Nach-Upload. */
+export function merkeStand(data: AppData): void {
+  zuletztHochgeladen = JSON.stringify(data);
 }

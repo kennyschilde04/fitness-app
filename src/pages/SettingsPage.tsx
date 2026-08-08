@@ -2,7 +2,15 @@ import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
-import { herunterladen, hochladen, istKonfiguriert, trennen, verbinden, warVerbunden } from '../state/driveSync';
+import {
+  herunterladen,
+  hochladen,
+  istKonfiguriert,
+  merkeStand,
+  trennen,
+  verbinden,
+  warVerbunden,
+} from '../state/driveSync';
 import {
   STORAGE_KEY,
   autoBackupInfo,
@@ -210,7 +218,9 @@ export function SettingsPage() {
       }
       const ausDrive = await herunterladen();
       if (!ausDrive) {
-        await hochladen({ units, exercises, sessions });
+        const eigene = { units, exercises, sessions };
+        await hochladen(eigene);
+        merkeStand(eigene);
         showToast(`${sessions.length} Trainings nach Drive gesichert`);
         return;
       }
@@ -221,6 +231,8 @@ export function SettingsPage() {
         immerFragen: true,
         ausfuehren: () => {
           replaceData(ausDrive.data);
+          // Sonst würde der Abgleich das eben Geladene sofort wieder hochladen.
+          merkeStand(ausDrive.data);
           refreshStorageStats((value) => value + 1);
           showToast(`${ausDrive.data.sessions.length} Trainings aus Drive geladen`);
         },
@@ -266,7 +278,7 @@ export function SettingsPage() {
       return;
     }
     mitRueckfrage({
-      titel: 'Kennys Plan laden?',
+      titel: 'Eigener Plan laden?',
       text: `Ersetzt die aktuellen ${sessions.length} Trainings durch ${geladen.sessions.length} aus deinem Plan.`,
       bestaetigen: 'Laden',
       ausfuehren: () => {
@@ -297,14 +309,14 @@ export function SettingsPage() {
 
   function forgetPlan() {
     mitRueckfrage({
-      titel: 'Kennys Plan löschen?',
+      titel: 'Eigener Plan löschen?',
       text: 'Der gesicherte Plan wird entfernt. Deine aktuellen Daten bleiben unberührt.',
       bestaetigen: 'Löschen',
       immerFragen: true,
       ausfuehren: () => {
         deletePlanSlot();
         refreshStorageStats((value) => value + 1);
-        showToast('Kennys Plan gelöscht');
+        showToast('Eigener Plan gelöscht');
       },
     });
   }
@@ -871,7 +883,7 @@ export function SettingsPage() {
                 {planSlot && (
                   <button onClick={forgetPlan} className="app-list-button">
                     <span>
-                      <span className="block text-base font-black text-red-400">Kennys Plan löschen</span>
+                      <span className="block text-base font-black text-red-400">Eigener Plan löschen</span>
                       <span className="app-muted mt-1 block text-xs font-semibold">
                         Entfernt nur die lokale Sicherung, nicht deine aktuellen Daten
                       </span>
@@ -1022,7 +1034,7 @@ export function SettingsPage() {
                 </button>
                 <button onClick={() => void planAntippen()} disabled={driveLaeuft} className="app-list-button">
                   <span>
-                    <span className="block text-base font-black">Kennys Plan</span>
+                    <span className="block text-base font-black">Eigener Plan</span>
                     <span className="app-muted mt-1 block text-xs font-semibold">
                       {driveLaeuft
                         ? 'Verbinde mit Google Drive …'
