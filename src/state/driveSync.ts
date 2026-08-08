@@ -70,6 +70,13 @@ declare global {
 }
 
 const TOKEN_KEY = 'gym-tracker-drive-token';
+/**
+ * Nach einem Widerruf beim Trennen hat die App bei Google keine Freigabe mehr.
+ * Die nächste Anmeldung muss sie deshalb neu einholen — mit reiner
+ * Kontoauswahl endet der Ablauf ohne Token und das Fenster schließt sich
+ * einfach (`popup_closed`).
+ */
+const ZUSTIMMUNG_KEY = 'gym-tracker-drive-consent-needed';
 
 let accessToken: string | null = null;
 let tokenAblauf = 0;
@@ -371,9 +378,25 @@ export async function verbinden(erzwingeKontoauswahl = false): Promise<Verbindun
     erteilteRechte = '';
   }
 
-  // Der einzige Ort, an dem ein Google-Fenster aufgehen darf.
-  let token = await holeToken('interaktiv');
+  // Der einzige Ort, an dem ein Google-Fenster aufgehen darf. Nach einem
+  // Widerruf gleich mit Zustimmungsabfrage, sonst bliebe der Ablauf ohne Token.
+  const nachWiderruf = localStorage.getItem(ZUSTIMMUNG_KEY) === 'true';
+  let token: string | null = null;
+  try {
+    token = await holeToken(nachWiderruf ? 'zustimmung' : 'interaktiv');
+  } catch (fehler) {
+    // Schließt Google das Fenster ohne Ergebnis, fehlt fast immer die
+    // Freigabe. Einmal mit Zustimmungsabfrage nachfassen, statt den Nutzer
+    // mit "Fenster geschlossen" stehenzulassen.
+    const meldung = fehler instanceof Error ? fehler.message : '';
+    if (!nachWiderruf && meldung.includes('popup_closed')) {
+      token = await holeToken('zustimmung');
+    } else {
+      throw fehler;
+    }
+  }
   if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };
+  localStorage.removeItem(ZUSTIMMUNG_KEY);
 
   // Ein frisch gewähltes Konto hat das Drive-Recht womöglich nie erteilt.
   // Die Kontoauswahl allein holt es nicht nach — ohne diese Prüfung endet
@@ -411,7 +434,18 @@ export function trennen(): void {
   zuletztHochgeladen = null;
   // Sonst gilt beim naechsten Konto noch das Recht des vorherigen als erteilt.
   erteilteRechte = '';
-  if (token) window.google?.accounts?.oauth2?.revoke(token);
+  if (token) {
+    // Notiz zuerst: Der Widerruf nimmt der App die Freigabe, und ohne diese
+    // Notiz liefe die nächste Anmeldung wieder nur als Kontoauswahl und bliebe
+    // ohne Token. Scheitert der Widerruf, schadet die Notiz nicht — dann wird
+    // die Zustimmung einmal zu viel abgefragt statt gar nicht.
+    localStorage.setItem(ZUSTIMMUNG_KEY, 'true');
+    try {
+      window.google?.accounts?.oauth2?.revoke(token);
+    } catch {
+      // Widerruf fehlgeschlagen: Die Verbindung ist lokal trotzdem getrennt.
+    }
+  }
 }
 
 export async function herunterladen(): Promise<DrivePayload | null> {
