@@ -309,7 +309,13 @@ button {
   padding: var(--app-safe-top) 0 0;
 }
 
-@supports (-webkit-touch-callout: none) {
+/* Höhen-Fallback nur für Browser ohne dvh. Auf iOS löst
+   -webkit-fill-available zur großen Viewport-Höhe auf (URL-Leiste
+   eingeklappt). Direkt nach einem Reload ist die Leiste aber ausgeklappt,
+   der sichtbare Bereich also kleiner — das min-height überstimmt dann
+   height: 100dvh, der Inhalt wird zu hoch und rutscht unter das Dock.
+   Wo dvh unterstützt wird (iOS 15.4+), regelt dvh das bereits korrekt. */
+@supports not (height: 100dvh) {
   html,
   body,
   #root,
