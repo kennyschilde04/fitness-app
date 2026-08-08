@@ -124,7 +124,7 @@ export function CalendarPage() {
               onClick={() => setViewMode('week')}
               className={`rounded-xl px-4 py-2 text-sm font-bold transition-all duration-150 active:scale-95 ${
                 viewMode === 'week'
-                  ? 'bg-lime-300 text-neutral-950 light:bg-lime-500 light:text-white'
+                  ? 'app-accent-bg'
                   : 'text-neutral-400 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700'
               }`}
             >
@@ -134,7 +134,7 @@ export function CalendarPage() {
               onClick={() => setViewMode('month')}
               className={`rounded-xl px-4 py-2 text-sm font-bold transition-all duration-150 active:scale-95 ${
                 viewMode === 'month'
-                  ? 'bg-lime-300 text-neutral-950 light:bg-lime-500 light:text-white'
+                  ? 'app-accent-bg'
                   : 'text-neutral-400 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700'
               }`}
             >

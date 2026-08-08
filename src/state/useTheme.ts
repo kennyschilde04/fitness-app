@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 export type Theme = 'dark' | 'purple' | 'light' | 'midnight' | 'ember' | 'mint' | 'mono';
 
 const THEME_KEY = 'gym-tracker-theme';
+// Achtung: index.html setzt dieselbe Liste noch einmal, um das Theme vor dem
+// ersten Paint anzuwenden. Neue Themes dort mit ergänzen, sonst blitzt beim
+// Laden kurz das Default-Theme auf.
 const THEMES: Theme[] = ['dark', 'purple', 'light', 'midnight', 'ember', 'mint', 'mono'];
 const LIGHT_THEMES: Theme[] = ['light', 'mint'];
 

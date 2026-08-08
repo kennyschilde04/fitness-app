@@ -10,6 +10,9 @@
   --app-text-soft: #a3a3a3;
   --app-accent: #bef264;
   --app-accent-strong: #a3e635;
+  /* Textfarbe auf Akzentflächen. Themes mit dunklem Akzent (light, mint)
+     überschreiben das mit einem hellen Wert. */
+  --app-on-accent: #0a0a0a;
   --app-surface: rgba(255, 255, 255, 0.035);
   --app-surface-strong: rgba(10, 10, 10, 0.6);
   --app-surface-soft: rgba(23, 23, 23, 0.72);
@@ -36,6 +39,7 @@ html.light {
   --app-text-soft: #33402a;
   --app-accent: #65a30d;
   --app-accent-strong: #4d7c0f;
+  --app-on-accent: #f7f8f5;
   --app-surface: rgba(255, 255, 255, 0.9);
   --app-surface-strong: rgba(236, 240, 230, 0.96);
   --app-surface-soft: rgba(247, 248, 245, 0.92);
@@ -100,6 +104,7 @@ html.mint {
   --app-text-soft: #075e56;
   --app-accent: #0f766e;
   --app-accent-strong: #115e59;
+  --app-on-accent: #ecfdf8;
   --app-surface: rgba(255, 255, 255, 0.92);
   --app-surface-strong: rgba(215, 245, 238, 0.96);
   --app-surface-soft: rgba(236, 253, 248, 0.94);
@@ -242,6 +247,39 @@ button {
   .app-focus-card {
     padding: 0.75rem;
   }
+}
+
+/* Akzent-Utilities. Komponenten benutzen ausschließlich diese Klassen statt
+   fester Farbwerte, damit Highlights in jedem Theme mitziehen. */
+.app-accent-text {
+  color: var(--app-accent);
+}
+
+.app-accent-bg {
+  background: var(--app-accent);
+  color: var(--app-on-accent);
+}
+
+.app-accent-bg:hover {
+  background: var(--app-accent-strong);
+}
+
+.app-accent-dot {
+  background: var(--app-accent);
+}
+
+.app-accent-outline {
+  border-color: color-mix(in srgb, var(--app-accent) 70%, transparent);
+  color: var(--app-accent);
+}
+
+.app-accent-outline:hover {
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+}
+
+.app-accent-active {
+  border-color: var(--app-accent);
+  box-shadow: inset 0 0 0 2px var(--app-accent);
 }
 
 /* Die Übungsliste ist der flexible Bereich der Fokus-Karte. Reicht der Platz
@@ -714,16 +752,6 @@ button {
     opacity: 0;
     transform: translateY(calc(-100% - 1rem)) scale(0.96);
   }
-}
-
-html.light .text-lime-300,
-html.mint .text-lime-300 {
-  color: var(--app-accent) !important;
-}
-
-html.light .bg-lime-300,
-html.mint .bg-lime-300 {
-  background-color: var(--app-accent) !important;
 }
 
 html.light .text-white,

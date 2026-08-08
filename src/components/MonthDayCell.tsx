@@ -33,7 +33,7 @@ export function MonthDayCell({ date, unit, isCurrentMonth, onClick, onLongPress 
       <span
         className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${
           today
-            ? 'bg-lime-300 text-neutral-950 light:bg-lime-500 light:text-white'
+            ? 'app-accent-bg'
             : 'text-neutral-100 light:text-neutral-900'
         }`}
       >
