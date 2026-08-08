@@ -2,22 +2,158 @@
 
 @custom-variant light (&:where(.light, .light *));
 
+:root {
+  --app-bg: #0a0a0a;
+  --app-bg-top: #1f2937;
+  --app-text: #f5f5f5;
+  --app-text-muted: #737373;
+  --app-text-soft: #a3a3a3;
+  --app-accent: #bef264;
+  --app-accent-strong: #a3e635;
+  --app-surface: rgba(255, 255, 255, 0.035);
+  --app-surface-strong: rgba(10, 10, 10, 0.6);
+  --app-surface-soft: rgba(23, 23, 23, 0.72);
+  --app-border: rgba(255, 255, 255, 0.12);
+  --app-border-strong: rgba(255, 255, 255, 0.18);
+  --app-radius-sm: 16px;
+  --app-radius-md: 24px;
+  --app-radius-lg: 32px;
+  --app-radius-xl: 36px;
+  --app-shadow-card: 0 18px 45px rgba(0, 0, 0, 0.24);
+  --app-page-x: 1rem;
+  --app-safe-top: max(2.25rem, calc(env(safe-area-inset-top) + 0.75rem));
+  --app-safe-bottom: max(2rem, env(safe-area-inset-bottom));
+  --app-dock-height: 4rem;
+  --app-dock-space: calc(var(--app-dock-height) + 0.75rem + max(0.75rem, env(safe-area-inset-bottom)) + 0.5rem);
+  --week-cell-height: clamp(6.75rem, 16vh, 9rem);
+}
+
+html.light {
+  --app-bg: #f7f8f5;
+  --app-bg-top: #dff4c6;
+  --app-text: #10140d;
+  --app-text-muted: #59614f;
+  --app-text-soft: #33402a;
+  --app-accent: #65a30d;
+  --app-accent-strong: #4d7c0f;
+  --app-surface: rgba(255, 255, 255, 0.9);
+  --app-surface-strong: rgba(236, 240, 230, 0.96);
+  --app-surface-soft: rgba(247, 248, 245, 0.92);
+  --app-border: rgba(16, 20, 13, 0.18);
+  --app-border-strong: rgba(16, 20, 13, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(74, 85, 62, 0.2);
+}
+
+html.purple {
+  --app-bg: #09040f;
+  --app-bg-top: #27103f;
+  --app-text: #fbf7ff;
+  --app-text-muted: #8d7a9e;
+  --app-text-soft: #c9b6dd;
+  --app-accent: #d946ef;
+  --app-accent-strong: #a855f7;
+  --app-surface: rgba(216, 180, 254, 0.07);
+  --app-surface-strong: rgba(18, 8, 28, 0.76);
+  --app-surface-soft: rgba(39, 16, 63, 0.72);
+  --app-border: rgba(216, 180, 254, 0.16);
+  --app-border-strong: rgba(216, 180, 254, 0.26);
+  --app-shadow-card: 0 20px 50px rgba(88, 28, 135, 0.34);
+}
+
+html.midnight {
+  --app-bg: #050816;
+  --app-bg-top: #0f2747;
+  --app-text: #f8fafc;
+  --app-text-muted: #64748b;
+  --app-text-soft: #cbd5e1;
+  --app-accent: #38bdf8;
+  --app-accent-strong: #0ea5e9;
+  --app-surface: rgba(148, 163, 184, 0.07);
+  --app-surface-strong: rgba(2, 6, 23, 0.72);
+  --app-surface-soft: rgba(15, 23, 42, 0.78);
+  --app-border: rgba(148, 163, 184, 0.16);
+  --app-border-strong: rgba(56, 189, 248, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(2, 132, 199, 0.18);
+}
+
+html.ember {
+  --app-bg: #120604;
+  --app-bg-top: #3a1208;
+  --app-text: #fff7ed;
+  --app-text-muted: #9a7565;
+  --app-text-soft: #fed7aa;
+  --app-accent: #fb923c;
+  --app-accent-strong: #f97316;
+  --app-surface: rgba(251, 146, 60, 0.07);
+  --app-surface-strong: rgba(24, 10, 5, 0.76);
+  --app-surface-soft: rgba(67, 20, 7, 0.72);
+  --app-border: rgba(251, 146, 60, 0.16);
+  --app-border-strong: rgba(251, 146, 60, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(154, 52, 18, 0.26);
+}
+
+html.mint {
+  --app-bg: #ecfdf8;
+  --app-bg-top: #bff4e7;
+  --app-text: #042825;
+  --app-text-muted: #44655f;
+  --app-text-soft: #075e56;
+  --app-accent: #0f766e;
+  --app-accent-strong: #115e59;
+  --app-surface: rgba(255, 255, 255, 0.92);
+  --app-surface-strong: rgba(215, 245, 238, 0.96);
+  --app-surface-soft: rgba(236, 253, 248, 0.94);
+  --app-border: rgba(4, 40, 37, 0.18);
+  --app-border-strong: rgba(4, 40, 37, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(15, 118, 110, 0.18);
+}
+
+html.mono {
+  --app-bg: #080808;
+  --app-bg-top: #1f1f1f;
+  --app-text: #fafafa;
+  --app-text-muted: #737373;
+  --app-text-soft: #d4d4d4;
+  --app-accent: #f5f5f5;
+  --app-accent-strong: #d4d4d4;
+  --app-surface: rgba(255, 255, 255, 0.055);
+  --app-surface-strong: rgba(12, 12, 12, 0.78);
+  --app-surface-soft: rgba(38, 38, 38, 0.74);
+  --app-border: rgba(255, 255, 255, 0.16);
+  --app-border-strong: rgba(255, 255, 255, 0.28);
+  --app-shadow-card: 0 18px 45px rgba(0, 0, 0, 0.32);
+}
+
 html,
 body,
 #root {
   height: 100%;
+  min-height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  background: var(--app-bg);
 }
 
 body {
   margin: 0;
-  background: #0a0a0a;
-  color: #f5f5f5;
+  overflow: hidden;
+  background: var(--app-bg);
+  color: var(--app-text);
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-html.light body {
-  background: #fafafa;
-  color: #171717;
+#root {
+  overflow: hidden;
+}
+
+html.light body,
+html.purple body,
+html.midnight body,
+html.ember body,
+html.mint body,
+html.mono body {
+  background: var(--app-bg);
+  color: var(--app-text);
 }
 
 input[type='number']::-webkit-inner-spin-button,
@@ -41,4 +177,556 @@ button {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Niedrige Viewports: Kacheln und Kopfbereich schrumpfen mit, damit der
+   Kalender ohne Scrollen zwischen Kopfbereich und Dock passt. */
+@media (max-height: 720px) {
+  :root {
+    --week-cell-height: clamp(5.25rem, 13.5vh, 7rem);
+  }
+
+  .app-calendar-header .app-eyebrow,
+  .app-calendar-header .app-calendar-subtitle {
+    display: none;
+  }
+
+  .app-calendar-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .app-focus-card {
+    padding: 1rem;
+  }
+
+  .app-focus-body {
+    margin-top: 1rem;
+  }
+
+  .app-focus-cta {
+    margin-top: 0.75rem;
+  }
+
+  .app-focus-stats {
+    margin-top: 0.75rem;
+  }
+
+  .app-focus-stat {
+    padding: 0.5rem 0.625rem;
+  }
+
+  .app-focus-stat p:first-child {
+    font-size: 1.25rem;
+  }
+
+  .app-focus-rows {
+    margin-top: 0.625rem;
+  }
+}
+
+/* Sehr niedrige Viewports: Kopfbereich wird einzeilig und die Fokus-Karte
+   enger, damit ihr Inhalt nicht auf null zusammenfällt. */
+@media (max-height: 640px) {
+  :root {
+    --week-cell-height: 4.25rem;
+  }
+
+  .app-calendar-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .app-focus-card {
+    padding: 0.75rem;
+  }
+}
+
+/* Die Übungsliste ist der flexible Bereich der Fokus-Karte. Reicht der Platz
+   nicht für alle Zeilen, blendet die letzte weich aus statt hart abzureißen. */
+.app-focus-list {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 0.75rem), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 0.75rem), transparent 100%);
+}
+
+.week-strip {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 1rem;
+  touch-action: pan-x;
+}
+
+.app-screen {
+  display: flex;
+  min-height: 100dvh;
+  height: 100dvh;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 100vw;
+  background:
+    radial-gradient(circle at top, var(--app-bg-top) 0, var(--app-bg) 42rem);
+  padding: var(--app-safe-top) 0 0;
+}
+
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root,
+  .app-screen {
+    min-height: -webkit-fill-available;
+  }
+}
+
+.app-scroll {
+  box-sizing: border-box;
+  margin: 0 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 48rem;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-inline: var(--app-page-x);
+  padding-bottom: var(--app-safe-bottom);
+}
+
+.app-scroll-with-dock {
+  padding-bottom: calc(var(--app-safe-bottom) + 5.75rem);
+}
+
+/* Der Kalender scrollt bewusst nicht: er muss immer komplett zwischen
+   Kopfbereich und Dock passen und schrumpft stattdessen in der Höhe. */
+.app-calendar-scroll {
+  box-sizing: border-box;
+  margin: 0 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 64rem;
+  flex: 1;
+  overflow: hidden;
+  padding-inline: var(--app-page-x);
+  padding-bottom: var(--app-dock-space);
+}
+
+.app-card {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-card);
+}
+
+.app-card-spacious {
+  padding: 1.75rem;
+}
+
+.app-soft-row {
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-strong);
+  padding: 0.875rem 1.25rem;
+}
+
+.app-input {
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-strong);
+  color: var(--app-text);
+  font-weight: 800;
+  outline: none;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.app-input::placeholder {
+  color: color-mix(in srgb, var(--app-text-muted) 72%, transparent);
+}
+
+.app-input:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 22%, transparent);
+}
+
+.app-input-compact {
+  padding: 0.95rem 1rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.app-input-wide {
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+}
+
+.app-primary-button,
+.app-secondary-button,
+.app-danger-button {
+  border-radius: var(--app-radius-md);
+  font-weight: 900;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    opacity 150ms ease;
+}
+
+.app-primary-button {
+  background: var(--app-accent);
+  color: #0a0a0a;
+}
+
+.app-secondary-button {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  color: var(--app-text-soft);
+}
+
+.app-danger-button {
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.app-primary-button:active,
+.app-secondary-button:active,
+.app-danger-button:active {
+  transform: scale(0.96);
+}
+
+.app-primary-button:disabled,
+.app-secondary-button:disabled,
+.app-danger-button:disabled {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.app-exercise-card {
+  scroll-margin-top: 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
+  padding: 1.5rem;
+  box-shadow: var(--app-shadow-card);
+}
+
+.app-exercise-card-animated {
+  transition:
+    opacity 220ms ease,
+    padding 280ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.app-exercise-card-expanded {
+  border-color: var(--app-border-strong);
+}
+
+.app-exercise-accordion {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 220ms ease,
+    opacity 220ms ease;
+}
+
+.app-exercise-accordion-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.app-icon-button {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
+  color: var(--app-text-soft);
+  transition: transform 150ms ease;
+}
+
+.app-icon-button:active,
+.app-chip:active,
+.app-card-button:active {
+  transform: scale(0.97);
+}
+
+.app-chip {
+  min-width: 11rem;
+  flex-shrink: 0;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  padding: 1.25rem 2rem;
+  color: var(--app-text-muted);
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 900;
+  line-height: 1;
+  transition: transform 150ms ease;
+}
+
+.app-chip:focus-visible {
+  outline: none;
+}
+
+.app-chip-active {
+  border-width: 2px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 14px 32px rgba(0, 0, 0, 0.28);
+}
+
+.app-segmented-control {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--app-border);
+  border-radius: 1.75rem;
+  background: var(--app-surface-strong);
+  padding: 0.25rem;
+}
+
+.app-segmented-slider {
+  position: absolute;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  top: 0.25rem;
+  width: calc((100% - 0.5rem) / 3);
+  border-radius: 1.35rem;
+  background: var(--app-accent);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--app-accent) 30%, transparent);
+  transition: transform 260ms cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+
+.app-segmented-option {
+  position: relative;
+  z-index: 1;
+  border-radius: 1.35rem;
+  padding: 0.75rem;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  transition:
+    color 180ms ease,
+    transform 150ms ease;
+}
+
+.app-segmented-option-active {
+  color: #0a0a0a;
+}
+
+.app-x-scroll {
+  display: flex;
+  gap: 1rem;
+  margin-inline: calc(var(--app-page-x) * -1);
+  width: calc(100% + (var(--app-page-x) * 2));
+  max-width: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-inline: var(--app-page-x);
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.app-card-button {
+  width: 100%;
+  text-align: left;
+  transition: transform 150ms ease;
+}
+
+.app-stat-badge {
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface-strong);
+  padding: 0.75rem 1rem;
+  text-align: right;
+}
+
+.app-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.app-bottom-sheet {
+  display: flex;
+  height: 82svh;
+  width: 100%;
+  flex-direction: column;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg) var(--app-radius-lg) 0 0;
+  background: var(--app-bg);
+  padding: 1.25rem;
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  box-shadow: 0 -24px 64px rgba(0, 0, 0, 0.45);
+}
+
+.app-bottom-sheet-tall {
+  height: 86svh;
+}
+
+.app-sheet-handle {
+  margin: -0.25rem 0 1.25rem;
+  display: flex;
+  height: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-sheet-handle::before {
+  content: '';
+  height: 0.375rem;
+  width: 4rem;
+  border-radius: 999px;
+  background: var(--app-border-strong);
+}
+
+.app-eyebrow {
+  color: var(--app-accent);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.app-muted {
+  color: var(--app-text-muted);
+}
+
+.app-dock-wrap {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  box-sizing: border-box;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 64rem;
+  padding: 0.75rem var(--app-page-x) max(0.75rem, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+
+.app-dock {
+  display: grid;
+  height: var(--app-dock-height);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0.375rem;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
+}
+
+.app-dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--app-radius-md);
+  color: var(--app-text-soft);
+  transition: transform 150ms ease;
+}
+
+.app-dock-item:active {
+  transform: scale(0.95);
+}
+
+.app-dock-item-active {
+  color: var(--app-accent);
+}
+
+.app-dock-label {
+  margin-top: 0.125rem;
+  color: var(--app-text-muted);
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.app-list-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  padding: 1rem;
+  text-align: left;
+  transition: transform 150ms ease;
+}
+
+.app-list-button:active {
+  transform: scale(0.97);
+}
+
+.app-toast {
+  border: 1px solid var(--app-border-strong);
+  border-radius: 999px;
+  background: var(--app-accent);
+  padding: 0.75rem 1.25rem;
+  color: #0a0a0a;
+  font-size: 0.875rem;
+  font-weight: 900;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.3);
+}
+
+.app-toast-enter {
+  animation: app-toast-enter 260ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.app-toast-exit {
+  animation: app-toast-exit 260ms ease-in both;
+}
+
+@keyframes app-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-100% - 1rem)) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes app-toast-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(-100% - 1rem)) scale(0.96);
+  }
+}
+
+html.light .text-lime-300,
+html.mint .text-lime-300 {
+  color: var(--app-accent) !important;
+}
+
+html.light .bg-lime-300,
+html.mint .bg-lime-300 {
+  background-color: var(--app-accent) !important;
+}
+
+html.light .text-white,
+html.mint .text-white {
+  color: var(--app-text) !important;
 }
