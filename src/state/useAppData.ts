@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  aktuellerRaum,
   demoData,
   emptyData,
   fullDemoData,
@@ -51,9 +52,17 @@ export function useAppData() {
     let abgebrochen = false;
 
     async function starten() {
-      // Der Demo-Modus überlebt einen Neustart bewusst nicht: sonst bliebe die
-      // App ohne Konto dauerhaft in den Testdaten stehen und fragte nie wieder
-      // nach einer Anmeldung.
+      // Läuft in dieser Sitzung bereits der Demo-Modus, bleibt er beim
+      // Seitenwechsel erhalten: jede Seite baut ihren eigenen Datenzugriff auf
+      // und durchliefe sonst denselben Start. Der Raum liegt dafür im
+      // Arbeitsspeicher — ein echter Neustart leert ihn und beendet Demo.
+      const laufend = aktuellerRaum();
+      if (laufend?.art === 'demo') {
+        setData(loadData());
+        setZustand('demo');
+        return;
+      }
+
       const email = await stillAnmelden();
       if (abgebrochen) return;
 
