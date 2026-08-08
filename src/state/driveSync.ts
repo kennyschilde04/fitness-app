@@ -111,6 +111,18 @@ function merkeToken(): void {
 
 ladeTokenAusSpeicher();
 
+/**
+ * Das Google-Skript im Voraus laden. Wird es erst beim Klick geholt, liegt
+ * dazwischen ein Netzwerkvorgang — der Browser wertet den anschließenden
+ * Aufruf dann nicht mehr als von einer Nutzeraktion ausgelöst und blockiert
+ * das Anmeldefenster (`popup_failed_to_open`).
+ */
+if (istKonfiguriert()) {
+  void ladeGsi().catch(() => {
+    // Ohne Skript meldet der erste Anmeldeversuch den Fehler.
+  });
+}
+
 export function istKonfiguriert(): boolean {
   return CLIENT_ID.length > 0;
 }
@@ -178,11 +190,15 @@ function baueClient(api: OAuth2Api, meineAnfrage: object): TokenClient {
       merkeToken();
       anfrage.fertig(accessToken);
     },
-    error_callback: () => {
+    error_callback: (fehler) => {
       if (!gehoertZuMir()) return;
       const anfrage = laufendeAnfrage as Anfrage;
       laufendeAnfrage = null;
-      anfrage.fehler(new Error('Anmeldung abgebrochen'));
+      // Googles Typ mitnehmen: "popup_failed_to_open" (vom Browser
+      // blockiert) braucht eine andere Gegenmaßnahme als "popup_closed"
+      // (bewusst geschlossen). Pauschal "abgebrochen" verdeckte das.
+      const typ = (fehler as { type?: string } | undefined)?.type;
+      anfrage.fehler(new Error(typ ? `Anmeldung fehlgeschlagen: ${typ}` : 'Anmeldung abgebrochen'));
     },
   });
 }
@@ -201,7 +217,15 @@ async function holeToken(modus: Abrufmodus): Promise<string | null> {
   if (!istKonfiguriert()) throw new Error('Keine Google-Client-ID hinterlegt');
   if (accessToken && Date.now() < tokenAblauf) return accessToken;
   if (modus === 'nurSpeicher') return null;
-  if (laufendeAnfrage) throw new Error('Anmeldung läuft bereits');
+
+  // Ein hängengebliebener Versuch — Fenster geschlossen, ohne dass Google sich
+  // meldet — darf den nächsten nicht blockieren. Er wird verworfen, statt den
+  // neuen abzuweisen.
+  if (laufendeAnfrage) {
+    const alt = laufendeAnfrage;
+    laufendeAnfrage = null;
+    alt.fertig(null);
+  }
 
   await ladeGsi();
   const api = window.google?.accounts?.oauth2;
