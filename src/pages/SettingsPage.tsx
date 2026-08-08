@@ -5,7 +5,6 @@ import { type Theme, useTheme } from '../state/useTheme';
 import {
   gemerktesKonto,
   herunterladen,
-  hochladen,
   istKonfiguriert,
   merkeKonto,
   merkeStand,
@@ -83,8 +82,16 @@ function formatBytes(bytes: number): string {
 
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const { units, exercises, sessions, resetToDemoData, resetToEmptyData, resetToFullDemoData, replaceData } =
-    useAppData();
+  const {
+    units,
+    exercises,
+    sessions,
+    resetToDemoData,
+    resetToEmptyData,
+    resetToFullDemoData,
+    replaceData,
+    wechsleKonto,
+  } = useAppData();
   const [view, setView] = useState<SettingsView>('overview');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -212,69 +219,36 @@ export function SettingsPage() {
     }
     setDriveLaeuft(true);
     try {
-      let fremdesKonto = false;
-      let kontoName = driveKonto ?? 'Dieses Konto';
-      if (!driveVerbunden) {
-        const verbindung = await verbinden();
-        if (!verbindung.verbunden) {
-          showToast('Anmeldung abgebrochen');
-          return;
-        }
-        setDriveVerbunden(true);
-        fremdesKonto = verbindung.kontoGewechselt;
-        if (verbindung.konto) {
-          kontoName = verbindung.konto;
-          merkeKonto(verbindung.konto);
-          setDriveKonto(verbindung.konto);
-        }
+      // Immer neu verbinden: nur so lässt sich im Google-Dialog ein anderes
+      // Konto wählen. Ohne das käme man aus dem angemeldeten Konto nicht heraus.
+      const vorherigesKonto = driveKonto;
+      const verbindung = await verbinden();
+      if (!verbindung.verbunden || !verbindung.konto) {
+        showToast('Anmeldung abgebrochen');
+        return;
       }
+      const kontoName = verbindung.konto;
+      setDriveVerbunden(true);
+      merkeKonto(kontoName);
+      setDriveKonto(kontoName);
 
       const ausDrive = await herunterladen();
 
-      // Kontowechsel: strikte Trennung. Es wird nichts vom vorigen Konto
-      // mitgenommen — der Stand des neuen Kontos ersetzt den Bildschirm,
-      // notfalls leer. Der vorige Stand liegt weiter im Drive seines Kontos
-      // und zusätzlich im automatischen Sicherungspunkt.
-      if (fremdesKonto) {
-        const neuerStand = ausDrive ? ausDrive.data : emptyData();
-        mitRueckfrage({
-          titel: 'Auf dieses Konto wechseln?',
-          text: ausDrive
-            ? `${kontoName} hat ${neuerStand.sessions.length} Trainings. Die ${sessions.length} Trainings des vorherigen Kontos werden von diesem Gerät entfernt.`
-            : `${kontoName} hat noch keinen Plan — die App startet für dieses Konto leer. Die ${sessions.length} Trainings des vorherigen Kontos werden von diesem Gerät entfernt.`,
-          bestaetigen: 'Wechseln',
-          ausfuehren: () => {
-            replaceData(neuerStand);
-            merkeStand(neuerStand);
-            refreshStorageStats((value) => value + 1);
-            showToast(
-              ausDrive ? `${neuerStand.sessions.length} Trainings geladen` : 'Leer gestartet für dieses Konto',
-            );
-          },
-        });
-        return;
-      }
+      // Der Stand des Kontos ersetzt, was auf dem Gerät liegt — notfalls leer.
+      // Es wird nichts vom vorherigen Konto mitgenommen, und dessen Bestand
+      // wird von diesem Gerät entfernt. Seine Daten liegen in seinem Drive.
+      const neuerStand = ausDrive ? ausDrive.data : emptyData();
+      const vorheriges = vorherigesKonto;
+
+      wechsleKonto(kontoName, neuerStand, vorheriges);
+      merkeStand(neuerStand);
+      refreshStorageStats((value) => value + 1);
 
       if (!ausDrive) {
-        const eigene = { units, exercises, sessions };
-        await hochladen(eigene);
-        merkeStand(eigene);
-        showToast(`${sessions.length} Trainings nach Drive gesichert`);
+        showToast(`${kontoName}: noch kein Plan, leer gestartet`);
         return;
       }
-      mitRueckfrage({
-        titel: 'Plan aus Drive laden?',
-        text: `${ausDrive.data.sessions.length} Trainings, Stand vom ${new Date(ausDrive.gespeichertAm).toLocaleString('de-DE')}. Ersetzt die aktuellen ${sessions.length} Trainings auf diesem Gerät.`,
-        bestaetigen: 'Laden',
-        immerFragen: true,
-        ausfuehren: () => {
-          replaceData(ausDrive.data);
-          // Sonst würde der Abgleich das eben Geladene sofort wieder hochladen.
-          merkeStand(ausDrive.data);
-          refreshStorageStats((value) => value + 1);
-          showToast(`${ausDrive.data.sessions.length} Trainings aus Drive geladen`);
-        },
-      });
+      showToast(`${neuerStand.sessions.length} Trainings von ${kontoName}`);
     } catch (fehler) {
       // Offline oder Anmeldung abgelaufen: die lokale Spiegelung ist dann der
       // beste verfügbare Stand, statt den Nutzer mit einem Fehler stehenzulassen.

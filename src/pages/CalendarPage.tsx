@@ -53,6 +53,7 @@ export function CalendarPage() {
     removeExerciseFromUnit,
     setExerciseOrder,
     getPreviousSessions,
+    zustand,
   } = useAppData();
 
   const selectedSession = selectedDate ? getSessionForDate(toISODate(selectedDate)) : undefined;
@@ -142,6 +143,19 @@ export function CalendarPage() {
             </button>
           </div>
         </div>
+
+        {zustand === 'ohneKonto' && (
+          <div className="app-card mb-4 shrink-0 p-4">
+            <p className="text-base font-black">Kein Konto verbunden</p>
+            <p className="app-muted mt-2 text-sm font-semibold">
+              Deine Trainings liegen in deinem Google Drive und werden erst nach dem Verbinden geladen. Unter
+              Settings → Demo-Daten verbindest du dein Konto — dort lassen sich auch Demo-Daten ansehen.
+            </p>
+            <button onClick={() => navigate('/settings')} className="app-accent-bg mt-4 h-11 w-full rounded-2xl text-sm font-black">
+              Zu den Einstellungen
+            </button>
+          </div>
+        )}
 
         <div className="min-h-0 flex-1">
           {viewMode === 'week' ? (

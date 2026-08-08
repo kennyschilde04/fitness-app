@@ -219,6 +219,22 @@ export interface Verbindung {
   kontoGewechselt: boolean;
 }
 
+/**
+ * Versuch beim App-Start, ohne Dialog an ein Token zu kommen. Gelingt das
+ * nicht — kein Netz, abgelaufene Google-Sitzung, nie verbunden — bleibt die
+ * App bewusst ohne Konto und damit leer.
+ */
+export async function stillAnmelden(): Promise<string | null> {
+  if (!istKonfiguriert() || !warVerbunden()) return null;
+  try {
+    const token = await holeToken(true);
+    if (!token) return null;
+    return await holeKonto();
+  } catch {
+    return null;
+  }
+}
+
 export async function verbinden(): Promise<Verbindung> {
   // Beim bewussten Verbinden kann ein anderes Konto gewählt werden. Die
   // gemerkte Datei-ID des vorigen Kontos wäre dann falsch.
