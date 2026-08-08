@@ -2,6 +2,64 @@ import type { AppData, ExerciseDef, Session, UnitDef } from './types';
 
 export const STORAGE_KEY = 'gym-tracker-data-v2';
 
+/**
+ * Alle Nutzdaten liegen in einem Namensraum. Ohne verbundenes Konto gibt es
+ * keinen — dann liest und schreibt die App nichts, und es kann nichts von
+ * einem Konto beim anderen auftauchen.
+ *
+ * `demo` ist ein eigener Namensraum, damit Testdatensätze niemals in den
+ * Bestand eines Kontos geraten.
+ */
+export type Raum = { art: 'konto'; email: string } | { art: 'demo' } | null;
+
+const RAUM_KEY = 'gym-tracker-active-space';
+
+let aktiverRaum: Raum = null;
+
+export function setzeRaum(raum: Raum): void {
+  aktiverRaum = raum;
+  // Muss Navigation und Neuladen überleben: jede Seite ruft useAppData
+  // eigenständig auf, ohne gemerkten Raum würde sie zurückspringen.
+  if (raum === null) localStorage.removeItem(RAUM_KEY);
+  else localStorage.setItem(RAUM_KEY, raum.art === 'demo' ? 'demo' : `konto:${raum.email.toLowerCase()}`);
+}
+
+/** Liest den gemerkten Namensraum, ohne ihn zu aktivieren. */
+export function gemerkterRaum(): Raum {
+  const roh = localStorage.getItem(RAUM_KEY);
+  if (!roh) return null;
+  if (roh === 'demo') return { art: 'demo' };
+  if (roh.startsWith('konto:')) return { art: 'konto', email: roh.slice('konto:'.length) };
+  return null;
+}
+
+export function aktuellerRaum(): Raum {
+  return aktiverRaum;
+}
+
+export function raumVorhanden(): boolean {
+  return aktiverRaum !== null;
+}
+
+/** Schlüssel-Suffix des aktiven Namensraums; null bedeutet: nicht speichern. */
+function suffix(): string | null {
+  if (!aktiverRaum) return null;
+  return aktiverRaum.art === 'demo' ? '::demo' : `::${aktiverRaum.email.toLowerCase()}`;
+}
+
+function raumKey(basis: string): string | null {
+  const s = suffix();
+  return s === null ? null : `${basis}${s}`;
+}
+
+/** Entfernt sämtliche Daten eines Kontos von diesem Gerät. */
+export function loescheRaum(email: string): void {
+  const s = `::${email.toLowerCase()}`;
+  Object.keys(localStorage)
+    .filter((key) => key.endsWith(s))
+    .forEach((key) => localStorage.removeItem(key));
+}
+
 const DEFAULT_UNITS: UnitDef[] = [
   { id: 'unit-schulter-ruecken', name: 'Schulter/Rücken', colorIndex: 0, order: 0 },
   { id: 'unit-arme-brust', name: 'Arme/Brust', colorIndex: 1, order: 1 },
@@ -156,7 +214,11 @@ function stashRescue(raw: string): void {
 }
 
 export function loadData(): AppData {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const key = raumKey(STORAGE_KEY);
+  // Ohne Namensraum wird bewusst nichts geladen — auch dann nicht, wenn auf
+  // dem Gerät noch Daten eines Kontos liegen.
+  if (!key) return emptyData();
+  const raw = localStorage.getItem(key);
   if (!raw) return emptyData();
   try {
     const parsed = JSON.parse(raw) as AppData;
@@ -229,7 +291,9 @@ interface SlotPayload {
   data: AppData;
 }
 
-function writeSlot(key: string, data: AppData): void {
+function writeSlot(basis: string, data: AppData): void {
+  const key = raumKey(basis);
+  if (!key) return;
   const payload: SlotPayload = { gespeichertAm: new Date().toISOString(), data };
   try {
     localStorage.setItem(key, JSON.stringify(payload));
@@ -238,7 +302,9 @@ function writeSlot(key: string, data: AppData): void {
   }
 }
 
-function readSlotInfo(key: string): SlotInfo | null {
+function readSlotInfo(basis: string): SlotInfo | null {
+  const key = raumKey(basis);
+  if (!key) return null;
   const raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
@@ -256,7 +322,9 @@ function readSlotInfo(key: string): SlotInfo | null {
   }
 }
 
-function readSlotData(key: string): AppData | null {
+function readSlotData(basis: string): AppData | null {
+  const key = raumKey(basis);
+  if (!key) return null;
   const raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
@@ -319,7 +387,9 @@ export function readAutoBackup(): AppData | null {
 }
 
 export function saveData(data: AppData): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  const key = raumKey(STORAGE_KEY);
+  if (!key) return;
+  localStorage.setItem(key, JSON.stringify(data));
 }
 
 const EXPORT_VERSION = 1;

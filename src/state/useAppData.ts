@@ -1,19 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  type DataSource,
   demoData,
   emptyData,
   fullDemoData,
+  gemerkterRaum,
   loadData,
-  readDataSource,
+  loescheRaum,
   saveData,
   savePlanSlot,
+  setzeRaum,
   writeAutoBackup,
-  writeDataSource,
 } from '../storage';
-import { hochladenWennVerbunden } from './driveSync';
+import { hochladenWennVerbunden, stillAnmelden } from './driveSync';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
+
+export type AppZustand = 'pruefe' | 'ohneKonto' | 'bereit' | 'demo';
 
 function emptySets(count: number = DEFAULT_SETS): SetEntry[] {
   return Array.from({ length: count }, () => ({ weight: null, reps: null }));
@@ -39,11 +41,53 @@ export interface ExerciseHistoryEntry {
 }
 
 export function useAppData() {
-  const [data, setData] = useState<AppData>(() => loadData());
+  // Ohne Namensraum bleibt die App leer. Der Raum steht erst fest, wenn die
+  // stille Anmeldung durch ist — vorher wird nichts geladen und nichts
+  // geschrieben, sonst könnten Daten eines Kontos ohne Anmeldung erscheinen.
+  const [zustand, setZustand] = useState<AppZustand>('pruefe');
+  const [konto, setKonto] = useState<string | null>(null);
+  const [data, setData] = useState<AppData>(() => emptyData());
 
   useEffect(() => {
+    let abgebrochen = false;
+
+    async function starten() {
+      const gemerkt = gemerkterRaum();
+
+      // Der Demo-Raum braucht kein Konto.
+      if (gemerkt?.art === 'demo') {
+        setzeRaum(gemerkt);
+        if (abgebrochen) return;
+        setData(loadData());
+        setZustand('demo');
+        return;
+      }
+
+      const email = await stillAnmelden();
+      if (abgebrochen) return;
+
+      if (!email) {
+        setzeRaum(null);
+        setZustand('ohneKonto');
+        return;
+      }
+
+      setzeRaum({ art: 'konto', email });
+      setKonto(email);
+      setData(loadData());
+      setZustand('bereit');
+    }
+
+    void starten();
+    return () => {
+      abgebrochen = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (zustand === 'pruefe' || zustand === 'ohneKonto') return;
     saveData(data);
-  }, [data]);
+  }, [data, zustand]);
 
   // Die resetTo*-Funktionen sind bewusst ohne Abhängigkeiten. Über die Ref
   // kommen sie trotzdem an den aktuellen Stand, um ihn vor dem Überschreiben
@@ -51,23 +95,51 @@ export function useAppData() {
   const currentData = useRef(data);
   currentData.current = data;
 
-  const [source, setSource] = useState<DataSource>(() => readDataSource());
 
   // Eigene Stände werden laufend in den Plan-Slot gespiegelt. Dadurch braucht
   // es keinen Sichern-Button: der Plan ist immer der letzte eigene Stand.
+  // Nur echte Kontodaten werden gespiegelt und hochgeladen — im Demo-Raum
+  // wäre beides falsch.
   useEffect(() => {
-    if (source !== 'eigen') return;
+    if (zustand !== 'bereit') return;
     if (data.sessions.length === 0) return;
     savePlanSlot(data);
     hochladenWennVerbunden(data);
-  }, [data, source]);
+  }, [data, zustand]);
 
-  const replaceAll = useCallback((next: AppData, nextSource: DataSource) => {
-    writeAutoBackup(currentData.current);
-    saveData(next);
-    writeDataSource(nextSource);
-    setSource(nextSource);
-    setData(next);
+  /**
+   * Ersetzt den Bestand. `zielRaum` entscheidet, wohin geschrieben wird:
+   * Demo-Datensätze landen im Demo-Raum, eigene Daten im Raum des Kontos.
+   */
+  const replaceAll = useCallback(
+    (next: AppData, zielRaum: 'demo' | 'konto') => {
+      writeAutoBackup(currentData.current);
+      if (zielRaum === 'demo') {
+        setzeRaum({ art: 'demo' });
+        setZustand('demo');
+      } else if (konto) {
+        setzeRaum({ art: 'konto', email: konto });
+        setZustand('bereit');
+      }
+      saveData(next);
+      setData(next);
+    },
+    [konto],
+  );
+
+  /**
+   * Wechselt den aktiven Raum auf ein Konto. Der Bestand des vorherigen
+   * Kontos wird vom Gerät entfernt — dessen Daten liegen in seinem Drive.
+   */
+  const wechsleKonto = useCallback((email: string, stand: AppData, vorherigesKonto: string | null) => {
+    if (vorherigesKonto && vorherigesKonto.toLowerCase() !== email.toLowerCase()) {
+      loescheRaum(vorherigesKonto);
+    }
+    setzeRaum({ art: 'konto', email });
+    setKonto(email);
+    saveData(stand);
+    setData(stand);
+    setZustand('bereit');
   }, []);
 
   const getSessionForDate = useCallback(
@@ -341,7 +413,7 @@ export function useAppData() {
   const resetToEmptyData = useCallback(() => replaceAll(emptyData(), 'demo'), [replaceAll]);
 
   /** Eigene Daten: Import oder der zurückgeholte Plan. */
-  const replaceData = useCallback((next: AppData) => replaceAll(next, 'eigen'), [replaceAll]);
+  const replaceData = useCallback((next: AppData) => replaceAll(next, 'konto'), [replaceAll]);
 
   const getRecentSessions = useCallback(
     (unitId: string, limit = 10): Session[] =>
@@ -425,6 +497,9 @@ export function useAppData() {
     resetToFullDemoData,
     resetToEmptyData,
     replaceData,
-    source,
+    zustand,
+    konto,
+    /** Wechselt auf ein Konto und entfernt den Bestand des vorherigen vom Gerät. */
+    wechsleKonto,
   };
 }
