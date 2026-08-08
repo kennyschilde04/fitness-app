@@ -113,7 +113,11 @@ async function holeToken(stillschweigend: boolean): Promise<string | null> {
         client_id: CLIENT_ID,
         scope: SCOPE,
         callback: (response) => {
-          if (response.error || !response.access_token) {
+          if (response.error) {
+            reject(new Error(`Google-Anmeldung: ${response.error}`));
+            return;
+          }
+          if (!response.access_token) {
             resolve(null);
             return;
           }
@@ -140,7 +144,23 @@ async function api(pfad: string, init: RequestInit = {}): Promise<Response> {
     accessToken = null;
     throw new Error('Anmeldung abgelaufen');
   }
-  if (!response.ok) throw new Error(`Drive antwortete mit ${response.status}`);
+  if (!response.ok) {
+    // Googles eigener Grund ist für die Fehlersuche entscheidend: eine nicht
+    // aktivierte Drive-API, ein fehlender Bereich und ein gesperrtes Konto
+    // liefern alle 403, brauchen aber völlig verschiedene Gegenmaßnahmen.
+    let grund = '';
+    try {
+      const fehler = (await response.clone().json()) as {
+        error?: { message?: string; errors?: { reason?: string }[]; status?: string };
+      };
+      grund = [fehler.error?.status, fehler.error?.errors?.[0]?.reason, fehler.error?.message]
+        .filter(Boolean)
+        .join(' · ');
+    } catch {
+      grund = (await response.clone().text()).slice(0, 200);
+    }
+    throw new Error(`Drive ${response.status}: ${grund || 'ohne Begründung'}`);
+  }
   return response;
 }
 
