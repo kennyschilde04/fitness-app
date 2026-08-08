@@ -22,7 +22,16 @@ const DATEI = 'gym-tracker-plan.json';
 const FILE_ID_KEY = 'gym-tracker-drive-file-id';
 const CONNECTED_KEY = 'gym-tracker-drive-connected';
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
+/**
+ * Die Client-ID ist bei einer Browser-App kein Geheimnis — sie steht ohnehin
+ * im ausgelieferten JavaScript. Der Schutz kommt aus den autorisierten
+ * JavaScript-Quellen in der Google Cloud Console: Von einer nicht
+ * eingetragenen Adresse aus lehnt Google die Anmeldung ab. Deshalb steht sie
+ * hier als Standard, damit jede Preview ohne Extra-Konfiguration funktioniert.
+ * Über VITE_GOOGLE_CLIENT_ID lässt sie sich pro Umgebung überschreiben.
+ */
+const STANDARD_CLIENT_ID = '515351087556-qon1v4vnqlqhe4unig3qfgjbdd7sj617.apps.googleusercontent.com';
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || STANDARD_CLIENT_ID;
 
 export interface DrivePayload {
   gespeichertAm: string;
