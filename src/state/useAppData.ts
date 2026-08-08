@@ -11,6 +11,7 @@ import {
   writeAutoBackup,
   writeDataSource,
 } from '../storage';
+import { hochladenWennVerbunden } from './driveSync';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
@@ -58,6 +59,7 @@ export function useAppData() {
     if (source !== 'eigen') return;
     if (data.sessions.length === 0) return;
     savePlanSlot(data);
+    hochladenWennVerbunden(data);
   }, [data, source]);
 
   const replaceAll = useCallback((next: AppData, nextSource: DataSource) => {

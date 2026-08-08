@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
-import { useGoogleGate } from '../state/useGoogleGate';
+import { herunterladen, hochladen, istKonfiguriert, trennen, verbinden, warVerbunden } from '../state/driveSync';
 import {
   STORAGE_KEY,
   autoBackupInfo,
@@ -76,9 +76,10 @@ export function SettingsPage() {
     useAppData();
   const [view, setView] = useState<SettingsView>('overview');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
-  const [loginOffen, setLoginOffen] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const gate = useGoogleGate();
+  const driveKonfiguriert = istKonfiguriert();
+  const [driveVerbunden, setDriveVerbunden] = useState(() => warVerbunden());
+  const [driveLaeuft, setDriveLaeuft] = useState(false);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
     return APP_LANGUAGES.some((item) => item.id === saved) ? (saved as AppLanguage) : 'de';
@@ -187,16 +188,74 @@ export function SettingsPage() {
     });
   }
 
-  /** Gesperrt: erst anmelden, danach laden. Entsperrt: direkt laden. */
-  function planAntippen() {
-    if (gate.unlocked) {
-      loadPlan();
+  /**
+   * Ohne Verbindung: erst mit Google verbinden. Mit Verbindung: den Plan aus
+   * Drive holen. Ist die lokale Fassung neuer, wird das gemeldet statt sie
+   * stillschweigend zu überschreiben.
+   */
+  async function planAntippen() {
+    if (!driveKonfiguriert) {
+      showToast('Keine Google-Client-ID hinterlegt');
       return;
     }
-    setLoginOffen(true);
-    void gate.startSignIn(() => {
-      setLoginOffen(false);
-      loadPlan();
+    setDriveLaeuft(true);
+    try {
+      if (!driveVerbunden) {
+        const ok = await verbinden();
+        if (!ok) {
+          showToast('Anmeldung abgebrochen');
+          return;
+        }
+        setDriveVerbunden(true);
+      }
+      const ausDrive = await herunterladen();
+      if (!ausDrive) {
+        await hochladen({ units, exercises, sessions });
+        showToast(`${sessions.length} Trainings nach Drive gesichert`);
+        return;
+      }
+      mitRueckfrage({
+        titel: 'Plan aus Drive laden?',
+        text: `${ausDrive.data.sessions.length} Trainings, Stand vom ${new Date(ausDrive.gespeichertAm).toLocaleString('de-DE')}. Ersetzt die aktuellen ${sessions.length} Trainings auf diesem Gerät.`,
+        bestaetigen: 'Laden',
+        immerFragen: true,
+        ausfuehren: () => {
+          replaceData(ausDrive.data);
+          refreshStorageStats((value) => value + 1);
+          showToast(`${ausDrive.data.sessions.length} Trainings aus Drive geladen`);
+        },
+      });
+    } catch (fehler) {
+      // Offline oder Anmeldung abgelaufen: die lokale Spiegelung ist dann der
+      // beste verfügbare Stand, statt den Nutzer mit einem Fehler stehenzulassen.
+      const meldung = fehler instanceof Error ? fehler.message : 'Drive nicht erreichbar';
+      if (planSlot) {
+        mitRueckfrage({
+          titel: 'Drive nicht erreichbar',
+          text: `${meldung}. Stattdessen die lokale Kopie laden? ${planSlot.sessions} Trainings, Stand vom ${new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}.`,
+          bestaetigen: 'Lokal laden',
+          immerFragen: true,
+          ausfuehren: loadPlan,
+        });
+        return;
+      }
+      showToast(meldung);
+    } finally {
+      setDriveLaeuft(false);
+    }
+  }
+
+  function driveTrennen() {
+    mitRueckfrage({
+      titel: 'Google-Konto trennen?',
+      text: 'Die App greift danach nicht mehr auf Drive zu. Deine Daten auf diesem Gerät und in Drive bleiben erhalten.',
+      bestaetigen: 'Trennen',
+      immerFragen: true,
+      ausfuehren: () => {
+        trennen();
+        setDriveVerbunden(false);
+        showToast('Google-Konto getrennt');
+      },
     });
   }
 
@@ -814,10 +873,21 @@ export function SettingsPage() {
                     <span>
                       <span className="block text-base font-black text-red-400">Kennys Plan löschen</span>
                       <span className="app-muted mt-1 block text-xs font-semibold">
-                        Entfernt nur die Sicherung, nicht deine aktuellen Daten
+                        Entfernt nur die lokale Sicherung, nicht deine aktuellen Daten
                       </span>
                     </span>
                     <SettingsBadge>Löschen</SettingsBadge>
+                  </button>
+                )}
+                {driveVerbunden && (
+                  <button onClick={driveTrennen} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Google-Konto trennen</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Kein Abgleich mehr mit Drive; Daten bleiben erhalten
+                      </span>
+                    </span>
+                    <SettingsBadge>Trennen</SettingsBadge>
                   </button>
                 )}
               </div>
@@ -950,45 +1020,24 @@ export function SettingsPage() {
                   </span>
                   <SettingsBadge>Leeren</SettingsBadge>
                 </button>
-                {planSlot && (
-                  <button onClick={planAntippen} className="app-list-button">
-                    <span>
-                      <span className="block text-base font-black">Kennys Plan</span>
-                      <span className="app-muted mt-1 block text-xs font-semibold">
-                        {gate.unlocked
-                          ? `${planSlot.sessions} Trainings · Stand vom ${new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}`
-                          : 'Anmeldung mit Google nötig'}
-                      </span>
+                <button onClick={() => void planAntippen()} disabled={driveLaeuft} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Kennys Plan</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      {driveLaeuft
+                        ? 'Verbinde mit Google Drive …'
+                        : driveVerbunden
+                          ? 'Aus deinem Google Drive laden'
+                          : 'Einmalig mit Google verbinden'}
                     </span>
-                    <SettingsBadge>{gate.unlocked ? 'Laden' : 'Gesperrt'}</SettingsBadge>
-                  </button>
-                )}
+                  </span>
+                  <SettingsBadge>{driveVerbunden ? 'Laden' : 'Google'}</SettingsBadge>
+                </button>
               </div>
             </section>
           </>
         )}
       </main>
-
-      {loginOffen && (
-        <div className="app-sheet-backdrop" onClick={() => setLoginOffen(false)}>
-          <div className="app-card w-full max-w-md p-6" onClick={(event) => event.stopPropagation()}>
-            <p className="text-xl font-black">Kennys Plan</p>
-            <p className="app-muted mt-3 text-sm font-semibold">
-              Melde dich einmalig mit Google an, danach bleibt der Plan auf diesem Gerät freigeschaltet.
-            </p>
-            <div ref={gate.setHost} className="mt-5 flex justify-center" />
-            {gate.error && <p className="mt-4 text-sm font-bold text-red-400">{gate.error}</p>}
-            {!gate.configured && (
-              <p className="app-muted mt-4 text-xs font-semibold">
-                Diese Umgebung hat keine Google-Client-ID hinterlegt.
-              </p>
-            )}
-            <button onClick={() => setLoginOffen(false)} className="app-secondary-button mt-6 w-full">
-              Abbrechen
-            </button>
-          </div>
-        </div>
-      )}
 
       {confirmAction && (
         <div className="app-sheet-backdrop" onClick={() => setConfirmAction(null)}>
