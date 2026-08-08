@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { demoData, emptyData, fullDemoData, loadData, saveData, writeAutoBackup } from '../storage';
+import {
+  type DataSource,
+  demoData,
+  emptyData,
+  fullDemoData,
+  loadData,
+  readDataSource,
+  saveData,
+  savePlanSlot,
+  writeAutoBackup,
+  writeDataSource,
+} from '../storage';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
@@ -39,9 +50,21 @@ export function useAppData() {
   const currentData = useRef(data);
   currentData.current = data;
 
-  const replaceAll = useCallback((next: AppData) => {
+  const [source, setSource] = useState<DataSource>(() => readDataSource());
+
+  // Eigene Stände werden laufend in den Plan-Slot gespiegelt. Dadurch braucht
+  // es keinen Sichern-Button: der Plan ist immer der letzte eigene Stand.
+  useEffect(() => {
+    if (source !== 'eigen') return;
+    if (data.sessions.length === 0) return;
+    savePlanSlot(data);
+  }, [data, source]);
+
+  const replaceAll = useCallback((next: AppData, nextSource: DataSource) => {
     writeAutoBackup(currentData.current);
     saveData(next);
+    writeDataSource(nextSource);
+    setSource(nextSource);
     setData(next);
   }, []);
 
@@ -309,13 +332,14 @@ export function useAppData() {
     }));
   }, []);
 
-  const resetToDemoData = useCallback(() => replaceAll(demoData()), [replaceAll]);
+  const resetToDemoData = useCallback(() => replaceAll(demoData(), 'demo'), [replaceAll]);
 
-  const resetToFullDemoData = useCallback(() => replaceAll(fullDemoData()), [replaceAll]);
+  const resetToFullDemoData = useCallback(() => replaceAll(fullDemoData(), 'demo'), [replaceAll]);
 
-  const resetToEmptyData = useCallback(() => replaceAll(emptyData()), [replaceAll]);
+  const resetToEmptyData = useCallback(() => replaceAll(emptyData(), 'demo'), [replaceAll]);
 
-  const replaceData = useCallback((next: AppData) => replaceAll(next), [replaceAll]);
+  /** Eigene Daten: Import oder der zurückgeholte Plan. */
+  const replaceData = useCallback((next: AppData) => replaceAll(next, 'eigen'), [replaceAll]);
 
   const getRecentSessions = useCallback(
     (unitId: string, limit = 10): Session[] =>
@@ -399,5 +423,6 @@ export function useAppData() {
     resetToFullDemoData,
     resetToEmptyData,
     replaceData,
+    source,
   };
 }

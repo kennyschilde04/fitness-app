@@ -283,6 +283,27 @@ export function deletePlanSlot(): void {
   localStorage.removeItem(PLAN_SLOT_KEY);
 }
 
+/**
+ * Merkt sich, ob der aktuelle Stand die eigenen Daten oder ein Testdatensatz
+ * ist. Nur eigene Stände werden automatisch in den Plan-Slot gespiegelt —
+ * sonst würde ein geladener Demo-Datensatz den Plan überschreiben.
+ */
+const SOURCE_KEY = 'gym-tracker-data-source';
+
+export type DataSource = 'eigen' | 'demo';
+
+export function readDataSource(): DataSource {
+  return localStorage.getItem(SOURCE_KEY) === 'demo' ? 'demo' : 'eigen';
+}
+
+export function writeDataSource(source: DataSource): void {
+  try {
+    localStorage.setItem(SOURCE_KEY, source);
+  } catch {
+    // Ohne Markierung fällt die Automatik auf "eigen" zurück.
+  }
+}
+
 /** Vor jedem überschreibenden Vorgang aufrufen. Leere Stände sind es nicht wert. */
 export function writeAutoBackup(data: AppData): void {
   if (data.sessions.length === 0) return;

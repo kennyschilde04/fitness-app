@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
+import { useGoogleGate } from '../state/useGoogleGate';
 import {
   STORAGE_KEY,
   autoBackupInfo,
@@ -15,7 +16,6 @@ import {
   readAutoBackup,
   readPlanSlot,
   readRescueRaw,
-  savePlanSlot,
 } from '../storage';
 
 const APP_THEMES: { id: Theme; name: string; subtitle: string; colors: string[] }[] = [
@@ -76,7 +76,9 @@ export function SettingsPage() {
     useAppData();
   const [view, setView] = useState<SettingsView>('overview');
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [loginOffen, setLoginOffen] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const gate = useGoogleGate();
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
     return APP_LANGUAGES.some((item) => item.id === saved) ? (saved as AppLanguage) : 'de';
@@ -185,10 +187,17 @@ export function SettingsPage() {
     });
   }
 
-  function savePlan() {
-    savePlanSlot({ units, exercises, sessions });
-    refreshStorageStats((value) => value + 1);
-    showToast(`Kennys Plan gesichert: ${sessions.length} Trainings`);
+  /** Gesperrt: erst anmelden, danach laden. Entsperrt: direkt laden. */
+  function planAntippen() {
+    if (gate.unlocked) {
+      loadPlan();
+      return;
+    }
+    setLoginOffen(true);
+    void gate.startSignIn(() => {
+      setLoginOffen(false);
+      loadPlan();
+    });
   }
 
   function loadPlan() {
@@ -942,25 +951,44 @@ export function SettingsPage() {
                   <SettingsBadge>Leeren</SettingsBadge>
                 </button>
                 {planSlot && (
-                  <button onClick={loadPlan} className="app-list-button">
+                  <button onClick={planAntippen} className="app-list-button">
                     <span>
                       <span className="block text-base font-black">Kennys Plan</span>
                       <span className="app-muted mt-1 block text-xs font-semibold">
-                        {planSlot.sessions} Trainings · gesichert am{' '}
-                        {new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}
+                        {gate.unlocked
+                          ? `${planSlot.sessions} Trainings · Stand vom ${new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}`
+                          : 'Anmeldung mit Google nötig'}
                       </span>
                     </span>
-                    <SettingsBadge>Laden</SettingsBadge>
+                    <SettingsBadge>{gate.unlocked ? 'Laden' : 'Gesperrt'}</SettingsBadge>
                   </button>
                 )}
               </div>
-              <button onClick={savePlan} className="app-secondary-button mt-3 w-full">
-                Aktuellen Stand als Kennys Plan sichern
-              </button>
             </section>
           </>
         )}
       </main>
+
+      {loginOffen && (
+        <div className="app-sheet-backdrop" onClick={() => setLoginOffen(false)}>
+          <div className="app-card w-full max-w-md p-6" onClick={(event) => event.stopPropagation()}>
+            <p className="text-xl font-black">Kennys Plan</p>
+            <p className="app-muted mt-3 text-sm font-semibold">
+              Melde dich einmalig mit Google an, danach bleibt der Plan auf diesem Gerät freigeschaltet.
+            </p>
+            <div ref={gate.setHost} className="mt-5 flex justify-center" />
+            {gate.error && <p className="mt-4 text-sm font-bold text-red-400">{gate.error}</p>}
+            {!gate.configured && (
+              <p className="app-muted mt-4 text-xs font-semibold">
+                Diese Umgebung hat keine Google-Client-ID hinterlegt.
+              </p>
+            )}
+            <button onClick={() => setLoginOffen(false)} className="app-secondary-button mt-6 w-full">
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirmAction && (
         <div className="app-sheet-backdrop" onClick={() => setConfirmAction(null)}>
