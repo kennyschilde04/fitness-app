@@ -45,6 +45,7 @@ export interface DrivePayload {
 interface TokenResponse {
   access_token?: string;
   expires_in?: number;
+  scope?: string;
   error?: string;
 }
 
@@ -71,6 +72,10 @@ declare global {
 let accessToken: string | null = null;
 let tokenAblauf = 0;
 let tokenClient: TokenClient | null = null;
+/** Rechte, die Google zum aktuellen Token tatsächlich erteilt hat. */
+let erteilteRechte = '';
+/** Der stille Versuch beim Laden der Seite läuft höchstens einmal. */
+let startVersuchGemacht = false;
 
 export function istKonfiguriert(): boolean {
   return CLIENT_ID.length > 0;
@@ -100,10 +105,6 @@ function ladeGsi(): Promise<void> {
 }
 
 /**
- * Holt ein Zugriffstoken. `stillschweigend` versucht es ohne Dialog — das
- * klappt, solange die Google-Sitzung im Browser noch steht.
- */
-/**
  * Der Token-Client wird nur einmal erzeugt, sein Callback ist aber fest
  * verdrahtet. Deshalb liegt die Auflösung der laufenden Anfrage hier daneben
  * und wird pro Aufruf neu gesetzt — sonst bedient der Callback ewig das
@@ -130,6 +131,7 @@ function baueClient(api: OAuth2Api): void {
       }
       accessToken = response.access_token;
       tokenAblauf = Date.now() + (response.expires_in ?? 3600) * 1000 - 60_000;
+      erteilteRechte = response.scope ?? '';
       localStorage.setItem(CONNECTED_KEY, 'true');
       anfrage.fertig(accessToken);
     },
@@ -141,16 +143,20 @@ function baueClient(api: OAuth2Api): void {
   });
 }
 
-/**
- * `interaktiv: false` öffnet unter keinen Umständen ein Google-Fenster und
- * nutzt nur ein bereits vorliegendes Token. Das ist wichtig, weil auch ein
- * vermeintlich stiller Token-Abruf den Kontoauswahl-Dialog aufreißen kann —
- * mitten im Navigieren oder direkt nach einem Abbruch.
- */
-async function holeToken(interaktiv: boolean): Promise<string | null> {
+type Abrufmodus =
+  /** Nur ein Token verwenden, das schon im Speicher liegt. Nie ein Fenster. */
+  | 'nurSpeicher'
+  /** Erneuert die Sitzung ohne Dialog, solange die Google-Sitzung steht. */
+  | 'still'
+  /** Kontoauswahl anzeigen. */
+  | 'interaktiv'
+  /** Berechtigungen erneut abfragen — nötig für ein Konto ohne Drive-Recht. */
+  | 'zustimmung';
+
+async function holeToken(modus: Abrufmodus): Promise<string | null> {
   if (!istKonfiguriert()) throw new Error('Keine Google-Client-ID hinterlegt');
   if (accessToken && Date.now() < tokenAblauf) return accessToken;
-  if (!interaktiv) return null;
+  if (modus === 'nurSpeicher') return null;
   if (laufendeAnfrage) throw new Error('Anmeldung läuft bereits');
 
   await ladeGsi();
@@ -158,17 +164,22 @@ async function holeToken(interaktiv: boolean): Promise<string | null> {
   if (!api) throw new Error('Google-Anmeldung nicht verfügbar');
   baueClient(api);
 
+  const prompt = modus === 'still' ? '' : modus === 'zustimmung' ? 'consent' : 'select_account';
+
   return new Promise((resolve, reject) => {
     laufendeAnfrage = { fertig: resolve, fehler: reject };
-    // select_account statt consent: Kontowechsel ohne jedes Mal die
-    // Berechtigungsabfrage erneut durchlaufen zu müssen.
-    tokenClient!.requestAccessToken({ prompt: 'select_account' });
+    tokenClient!.requestAccessToken({ prompt });
   });
+}
+
+/** Wurde das Drive-Recht zum aktuellen Token wirklich erteilt? */
+function hatDriveRecht(): boolean {
+  return erteilteRechte.includes('drive.appdata');
 }
 
 async function api(pfad: string, init: RequestInit = {}): Promise<Response> {
   // Nicht interaktiv: ein Drive-Aufruf darf keinen Anmeldedialog auslösen.
-  const token = await holeToken(false);
+  const token = await holeToken('nurSpeicher');
   if (!token) throw new Error('Nicht angemeldet');
   const response = await fetch(pfad, {
     ...init,
@@ -257,9 +268,14 @@ export interface Verbindung {
 export async function stillAnmelden(): Promise<string | null> {
   if (!istKonfiguriert() || !warVerbunden()) return null;
   try {
-    // Ausdrücklich nicht interaktiv: beim Start und bei jedem Seitenwechsel
-    // darf niemals ungefragt ein Anmeldefenster aufgehen.
-    const token = await holeToken(false);
+    // Beim ersten Aufruf nach dem Laden der Seite wird die Sitzung still
+    // erneuert — sonst müsste man sich nach jedem Neuladen erneut anmelden,
+    // obwohl man angemeldet ist. Bei jedem weiteren Aufruf (Seitenwechsel)
+    // zählt nur noch ein Token aus dem Speicher, damit nicht beim Navigieren
+    // ungefragt ein Fenster aufgeht.
+    const modus: Abrufmodus = startVersuchGemacht ? 'nurSpeicher' : 'still';
+    startVersuchGemacht = true;
+    const token = await holeToken(modus);
     if (!token) return null;
     // Mit Zeitgrenze: hängt der Abruf (kein Netz, Google nicht erreichbar),
     // bliebe die App sonst im Prüfzustand stehen — leer und ohne Hinweis.
@@ -278,8 +294,21 @@ export async function verbinden(): Promise<Verbindung> {
   localStorage.removeItem(FILE_ID_KEY);
   zuletztHochgeladen = null;
   // Der einzige Ort, an dem ein Google-Fenster aufgehen darf.
-  const token = await holeToken(true);
+  let token = await holeToken('interaktiv');
   if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };
+
+  // Ein frisch gewähltes Konto hat das Drive-Recht womöglich nie erteilt.
+  // Die Kontoauswahl allein holt es nicht nach — ohne diese Prüfung endet
+  // der erste Drive-Aufruf mit 403.
+  if (!hatDriveRecht()) {
+    accessToken = null;
+    tokenAblauf = 0;
+    token = await holeToken('zustimmung');
+    if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };
+    if (!hatDriveRecht()) {
+      throw new Error('Zugriff auf Google Drive wurde nicht erteilt');
+    }
+  }
 
   const konto = await holeKonto();
   const vorher = gemerktesKonto();
@@ -301,6 +330,8 @@ export function trennen(): void {
   // gehören sie weiterhin demselben Konto — ohne diese Information würde der
   // nächste Login mit einem anderen Konto nicht als Wechsel erkannt.
   zuletztHochgeladen = null;
+  // Sonst gilt beim naechsten Konto noch das Recht des vorherigen als erteilt.
+  erteilteRechte = '';
   if (token) window.google?.accounts?.oauth2?.revoke(token);
 }
 
