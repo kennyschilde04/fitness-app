@@ -140,19 +140,72 @@ export function emptyData(): AppData {
   return { units: [], exercises: [], sessions: [] };
 }
 
+export const RESCUE_PREFIX = 'gym-tracker-rescue-';
+
+/**
+ * Legt unlesbare Rohdaten beiseite, bevor die App mit leerem Zustand
+ * weiterläuft. Ohne das würde useAppData den leeren Zustand sofort über die
+ * beschädigten Daten schreiben und sie damit endgültig vernichten.
+ */
+function stashRescue(raw: string): void {
+  try {
+    localStorage.setItem(`${RESCUE_PREFIX}${new Date().toISOString()}`, raw);
+  } catch {
+    // Speicher voll oder gesperrt — dann ist die Rettung nicht möglich.
+  }
+}
+
 export function loadData(): AppData {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyData();
   try {
     const parsed = JSON.parse(raw) as AppData;
+    if (!parsed || typeof parsed !== 'object') throw new Error('kein Objekt');
+    if (!Array.isArray(parsed.sessions) && parsed.sessions !== undefined) {
+      throw new Error('sessions unbrauchbar');
+    }
     return {
       units: parsed.units ?? structuredClone(DEFAULT_UNITS),
       exercises: parsed.exercises ?? [],
       sessions: parsed.sessions ?? [],
     };
   } catch {
+    stashRescue(raw);
     return emptyData();
   }
+}
+
+export interface RescueEntry {
+  key: string;
+  gespeichertAm: string;
+  bytes: number;
+  wiederherstellbar: boolean;
+  sessions: number | null;
+}
+
+export function listRescueEntries(): RescueEntry[] {
+  return Object.keys(localStorage)
+    .filter((key) => key.startsWith(RESCUE_PREFIX))
+    .map((key) => {
+      const raw = localStorage.getItem(key) ?? '';
+      const wiederhergestellt = parseImport(raw);
+      return {
+        key,
+        gespeichertAm: key.slice(RESCUE_PREFIX.length),
+        bytes: new Blob([raw]).size,
+        wiederherstellbar: wiederhergestellt !== null,
+        sessions: wiederhergestellt ? wiederhergestellt.sessions.length : null,
+      };
+    })
+    .sort((a, b) => (a.gespeichertAm < b.gespeichertAm ? 1 : -1));
+}
+
+export function readRescueRaw(key: string): string | null {
+  return localStorage.getItem(key);
+}
+
+export function deleteRescue(key: string): void {
+  localStorage.removeItem(key);
 }
 
 export function saveData(data: AppData): void {

@@ -2,7 +2,15 @@ import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
-import { STORAGE_KEY, buildExport, exportFileName, parseImport } from '../storage';
+import {
+  STORAGE_KEY,
+  buildExport,
+  deleteRescue,
+  exportFileName,
+  listRescueEntries,
+  parseImport,
+  readRescueRaw,
+} from '../storage';
 
 const APP_THEMES: { id: Theme; name: string; subtitle: string; colors: string[] }[] = [
   { id: 'dark', name: 'Dunkel', subtitle: 'Gym Mode', colors: ['#0a0a0a', '#bef264', '#fb923c'] },
@@ -46,6 +54,8 @@ interface ConfirmAction {
   text: string;
   bestaetigen: string;
   ausfuehren: () => void;
+  /** Auch bei leerer App fragen — wenn nicht die aktuellen Daten auf dem Spiel stehen. */
+  immerFragen?: boolean;
 }
 
 function formatBytes(bytes: number): string {
@@ -85,6 +95,7 @@ export function SettingsPage() {
       .join('|'),
   ]).size;
   const totalBytes = appDataBytes + cacheBytes;
+  const rescueEntries = listRescueEntries();
   const activeLanguage = APP_LANGUAGES.find((item) => item.id === language) ?? APP_LANGUAGES[0];
 
   function showToast(message: string) {
@@ -108,22 +119,66 @@ export function SettingsPage() {
    * wäre die Rückfrage nur im Weg.
    */
   function mitRueckfrage(action: ConfirmAction) {
-    if (sessions.length === 0) {
+    if (sessions.length === 0 && !action.immerFragen) {
       action.ausfuehren();
       return;
     }
     setConfirmAction(action);
   }
 
-  function exportData() {
-    const inhalt = buildExport({ units, exercises, sessions });
+  function downloadJson(inhalt: string, dateiname: string) {
     const blob = new Blob([inhalt], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = exportFileName();
+    link.download = dateiname;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function restoreRescue(key: string) {
+    const raw = readRescueRaw(key);
+    const eingelesen = raw ? parseImport(raw) : null;
+    if (!eingelesen) {
+      showToast('Nicht automatisch wiederherstellbar');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Gerettete Daten einspielen?',
+      text: `Ersetzt deine aktuellen ${sessions.length} Trainings durch ${eingelesen.sessions.length} aus der Rettung.`,
+      bestaetigen: 'Einspielen',
+      ausfuehren: () => {
+        replaceData(eingelesen);
+        deleteRescue(key);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${eingelesen.sessions.length} Trainings wiederhergestellt`);
+      },
+    });
+  }
+
+  function saveRescueToFile(key: string) {
+    const raw = readRescueRaw(key);
+    if (!raw) return;
+    downloadJson(raw, `gym-tracker-rettung-${key.slice(-24, -5)}.json`);
+    showToast('Rettung als Datei gesichert');
+  }
+
+  function discardRescue(key: string) {
+    mitRueckfrage({
+      titel: 'Rettung verwerfen?',
+      text: 'Die beschädigten Daten werden endgültig entfernt. Vorher als Datei sichern, falls du sie noch brauchst.',
+      bestaetigen: 'Verwerfen',
+      immerFragen: true,
+      ausfuehren: () => {
+        deleteRescue(key);
+        refreshStorageStats((value) => value + 1);
+        showToast('Rettung verworfen');
+      },
+    });
+  }
+
+  function exportData() {
+    downloadJson(buildExport({ units, exercises, sessions }), exportFileName());
     showToast(`${sessions.length} Trainings gesichert`);
   }
 
@@ -611,6 +666,42 @@ export function SettingsPage() {
                 </div>
               </div>
             </section>
+
+            {rescueEntries.length > 0 && (
+              <section className="app-card mt-6 border-red-400/40 p-5">
+                <p className="text-lg font-black text-red-400">Beschädigte Daten gefunden</p>
+                <p className="app-muted mt-2 text-sm font-semibold">
+                  Beim Laden waren die gespeicherten Daten unlesbar. Sie wurden beiseitegelegt, statt überschrieben
+                  zu werden.
+                </p>
+                {rescueEntries.map((entry) => (
+                  <div key={entry.key} className="app-soft-row mt-4 text-left">
+                    <p className="text-sm font-black">
+                      {new Date(entry.gespeichertAm).toLocaleString('de-DE')}
+                    </p>
+                    <p className="app-muted mt-1 text-xs font-semibold">
+                      {formatBytes(entry.bytes)}
+                      {entry.wiederherstellbar
+                        ? ` · ${entry.sessions} Trainings lesbar`
+                        : ' · nicht automatisch lesbar'}
+                    </p>
+                    <div className="mt-3 grid gap-2">
+                      {entry.wiederherstellbar && (
+                        <button onClick={() => restoreRescue(entry.key)} className="app-primary-button">
+                          Wiederherstellen
+                        </button>
+                      )}
+                      <button onClick={() => saveRescueToFile(entry.key)} className="app-secondary-button">
+                        Als Datei sichern
+                      </button>
+                      <button onClick={() => discardRescue(entry.key)} className="app-danger-button">
+                        Verwerfen
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </section>
+            )}
 
             <section className="mt-6">
               <p className="mb-3 text-sm font-black">Sicherung</p>
