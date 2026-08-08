@@ -69,13 +69,47 @@ declare global {
   }
 }
 
+const TOKEN_KEY = 'gym-tracker-drive-token';
+
 let accessToken: string | null = null;
 let tokenAblauf = 0;
 let tokenClient: TokenClient | null = null;
 /** Rechte, die Google zum aktuellen Token tatsächlich erteilt hat. */
 let erteilteRechte = '';
-/** Der stille Versuch beim Laden der Seite läuft höchstens einmal. */
-let startVersuchGemacht = false;
+
+/**
+ * Das Token überlebt das Neuladen der Seite. Sonst müsste der Start es neu
+ * anfordern, und genau dabei reißt Google ein Anmeldefenster auf, obwohl man
+ * angemeldet ist. Es gilt rund eine Stunde; danach ist wieder ein bewusster
+ * Klick nötig, statt ungefragt ein Fenster zu öffnen.
+ */
+function ladeTokenAusSpeicher(): void {
+  try {
+    const roh = localStorage.getItem(TOKEN_KEY);
+    if (!roh) return;
+    const gespeichert = JSON.parse(roh) as { token: string; ablauf: number; rechte: string };
+    if (!gespeichert.token || Date.now() >= gespeichert.ablauf) {
+      localStorage.removeItem(TOKEN_KEY);
+      return;
+    }
+    accessToken = gespeichert.token;
+    tokenAblauf = gespeichert.ablauf;
+    erteilteRechte = gespeichert.rechte ?? '';
+  } catch {
+    localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+function merkeToken(): void {
+  try {
+    if (!accessToken) localStorage.removeItem(TOKEN_KEY);
+    else localStorage.setItem(TOKEN_KEY, JSON.stringify({ token: accessToken, ablauf: tokenAblauf, rechte: erteilteRechte }));
+  } catch {
+    // Ohne gemerktes Token ist nach dem Neuladen eine Anmeldung nötig.
+  }
+}
+
+ladeTokenAusSpeicher();
 
 export function istKonfiguriert(): boolean {
   return CLIENT_ID.length > 0;
@@ -104,23 +138,31 @@ function ladeGsi(): Promise<void> {
   });
 }
 
-/**
- * Der Token-Client wird nur einmal erzeugt, sein Callback ist aber fest
- * verdrahtet. Deshalb liegt die Auflösung der laufenden Anfrage hier daneben
- * und wird pro Aufruf neu gesetzt — sonst bedient der Callback ewig das
- * Versprechen der allerersten Anmeldung, und jede weitere hängt.
- */
-let laufendeAnfrage: { fertig: (token: string | null) => void; fehler: (e: Error) => void } | null = null;
+/** Die gerade laufende Anmeldung; dient zugleich als deren Kennung. */
+interface Anfrage {
+  fertig: (token: string | null) => void;
+  fehler: (e: Error) => void;
+}
 
-function baueClient(api: OAuth2Api): void {
-  if (tokenClient) return;
-  tokenClient = api.initTokenClient({
+let laufendeAnfrage: Anfrage | null = null;
+
+/**
+ * Für jede Anmeldung ein eigener Client, dessen Callbacks fest zu genau
+ * dieser Anfrage gehören. Bei einem wiederverwendeten Client meldet sich der
+ * Fehler-Callback eines abgebrochenen Versuchs später erneut und reißt den
+ * inzwischen laufenden Versuch mit "Anmeldung abgebrochen" ab — deshalb
+ * schlug jeder zweite Anlauf fehl und erst der dritte ging durch.
+ */
+function baueClient(api: OAuth2Api, meineAnfrage: object): TokenClient {
+  const gehoertZuMir = () => laufendeAnfrage === meineAnfrage;
+
+  return api.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPE,
     callback: (response) => {
-      const anfrage = laufendeAnfrage;
+      if (!gehoertZuMir()) return;
+      const anfrage = laufendeAnfrage as Anfrage;
       laufendeAnfrage = null;
-      if (!anfrage) return;
       if (response.error) {
         anfrage.fehler(new Error(`Google-Anmeldung: ${response.error}`));
         return;
@@ -133,12 +175,14 @@ function baueClient(api: OAuth2Api): void {
       tokenAblauf = Date.now() + (response.expires_in ?? 3600) * 1000 - 60_000;
       erteilteRechte = response.scope ?? '';
       localStorage.setItem(CONNECTED_KEY, 'true');
+      merkeToken();
       anfrage.fertig(accessToken);
     },
     error_callback: () => {
-      const anfrage = laufendeAnfrage;
+      if (!gehoertZuMir()) return;
+      const anfrage = laufendeAnfrage as Anfrage;
       laufendeAnfrage = null;
-      anfrage?.fehler(new Error('Anmeldung abgebrochen'));
+      anfrage.fehler(new Error('Anmeldung abgebrochen'));
     },
   });
 }
@@ -162,13 +206,14 @@ async function holeToken(modus: Abrufmodus): Promise<string | null> {
   await ladeGsi();
   const api = window.google?.accounts?.oauth2;
   if (!api) throw new Error('Google-Anmeldung nicht verfügbar');
-  baueClient(api);
 
   const prompt = modus === 'still' ? '' : modus === 'zustimmung' ? 'consent' : 'select_account';
 
   return new Promise((resolve, reject) => {
-    laufendeAnfrage = { fertig: resolve, fehler: reject };
-    tokenClient!.requestAccessToken({ prompt });
+    const anfrage: Anfrage = { fertig: resolve, fehler: reject };
+    laufendeAnfrage = anfrage;
+    tokenClient = baueClient(api, anfrage);
+    tokenClient.requestAccessToken({ prompt });
   });
 }
 
@@ -186,7 +231,11 @@ async function api(pfad: string, init: RequestInit = {}): Promise<Response> {
     headers: { ...(init.headers ?? {}), Authorization: `Bearer ${token}` },
   });
   if (response.status === 401) {
+    // Abgelaufen: auch das gemerkte Token verwerfen, sonst gilt es nach dem
+    // Neuladen weiter als gueltig.
     accessToken = null;
+    tokenAblauf = 0;
+    merkeToken();
     throw new Error('Anmeldung abgelaufen');
   }
   if (!response.ok) {
@@ -268,14 +317,10 @@ export interface Verbindung {
 export async function stillAnmelden(): Promise<string | null> {
   if (!istKonfiguriert() || !warVerbunden()) return null;
   try {
-    // Beim ersten Aufruf nach dem Laden der Seite wird die Sitzung still
-    // erneuert — sonst müsste man sich nach jedem Neuladen erneut anmelden,
-    // obwohl man angemeldet ist. Bei jedem weiteren Aufruf (Seitenwechsel)
-    // zählt nur noch ein Token aus dem Speicher, damit nicht beim Navigieren
-    // ungefragt ein Fenster aufgeht.
-    const modus: Abrufmodus = startVersuchGemacht ? 'nurSpeicher' : 'still';
-    startVersuchGemacht = true;
-    const token = await holeToken(modus);
+    // Niemals nachfordern: Ein gültiges Token hat das Neuladen überlebt und
+    // reicht. Fehlt es, bleibt die App ohne Konto und zeigt die eigene
+    // Auswahl — besser als ein ungefragt aufspringendes Google-Fenster.
+    const token = await holeToken('nurSpeicher');
     if (!token) return null;
     // Mit Zeitgrenze: hängt der Abruf (kein Netz, Google nicht erreichbar),
     // bliebe die App sonst im Prüfzustand stehen — leer und ohne Hinweis.
@@ -334,6 +379,7 @@ export function trennen(): void {
   tokenAblauf = 0;
   localStorage.removeItem(CONNECTED_KEY);
   localStorage.removeItem(FILE_ID_KEY);
+  localStorage.removeItem(TOKEN_KEY);
   // ACCOUNT_KEY bleibt bewusst stehen: Er sagt nicht aus, ob eine Verbindung
   // besteht, sondern wem die Daten auf diesem Gerät gehören. Nach dem Trennen
   // gehören sie weiterhin demselben Konto — ohne diese Information würde der
