@@ -11,7 +11,8 @@ Mobile-first Trainings-Tracker: Einheiten (z.B. "Beine", "Arme/Brust"), Übungen
 - Tailwind CSS 4 (`@tailwindcss/vite`)
 - `react-router-dom` mit `HashRouter` (deshalb kein Server-Rewrite für Routing nötig — funktioniert auf jedem statischen Host ohne Konfiguration)
 - `vite-plugin-pwa` (Service Worker, installierbar, `registerType: 'autoUpdate'`)
-- **Keine Backend/Datenbank** — alle Daten liegen ausschließlich in `localStorage` des jeweiligen Geräts/Browsers (siehe `src/storage.ts`). Kein Server-Sync zwischen Geräten oder Nutzern.
+- **Kein eigenes Backend, keine Datenbank** — führender Speicher ist der `localStorage` des jeweiligen Geräts (siehe `src/storage.ts`), dadurch funktioniert die App offline. `localStorage` ist pro Adresse getrennt: Produktion, Staging und jede Preview haben eigene Daten.
+- **Optionaler Abgleich mit Google Drive** (`src/state/driveSync.ts`) — auf Wunsch legt die App den eigenen Plan im versteckten App-Ordner des angemeldeten Google-Kontos ab und holt ihn dort wieder. Damit folgt der Plan über Adressen und Geräte hinweg. Kein eigener Server, die Daten liegen im Konto des Nutzers. Es gibt **kein Zusammenführen**: Wer zuletzt hochlädt, gewinnt; jede Fassung trägt einen Zeitstempel und das Laden fragt immer nach.
 
 ## Setup
 
@@ -40,6 +41,39 @@ Type-Check ohne Build: `npx tsc --noEmit -p .`
 - `src/pages/` — `CalendarPage` (Start, Wochen-/Monatsansicht), `HistoryPage` ("Insight")
 - `src/components/` — UI-Komponenten (Header, Kalenderzellen, SessionModal, ExerciseRow, ...)
 - `vite.config.ts` — `base` ist `/fitness-app/` nur wenn `GITHUB_PAGES` env gesetzt ist (für GitHub Pages), sonst `/` (für Vercel/lokal)
+
+## Daten sichern und abgleichen
+
+Unter **Einstellungen → Speicher**:
+
+- **Daten exportieren / Sicherung einspielen** — JSON-Datei. Der Weg, um den Stand auf ein anderes Gerät oder eine andere Adresse zu bringen, und die Absicherung gegen gelöschte Browserdaten.
+- Beschädigte Daten werden beim Laden **beiseitegelegt statt überschrieben** und können hier wiederhergestellt oder als Datei gesichert werden.
+- Vor jedem überschreibenden Vorgang legt die App automatisch einen Sicherungspunkt an (**Stand vor dem Überschreiben**).
+
+Unter **Einstellungen → Demo-Daten**:
+
+- **Eigener Plan** — verbindet sich mit Google Drive und holt den dort abgelegten Plan. Dadurch überleben eigene Daten das Ausprobieren der Demo-Datensätze. Der Upload läuft danach automatisch bei eigenen Änderungen, nie bei geladenen Demo-Daten.
+
+### Google-Anbindung einrichten
+
+Die OAuth-Client-ID steckt als Standardwert in `src/state/driveSync.ts` und ist bei einer Browser-App kein Geheimnis — sie wird ohnehin mit ausgeliefert. Der Schutz kommt aus den autorisierten Quellen. Über `VITE_GOOGLE_CLIENT_ID` lässt sie sich pro Umgebung überschreiben (siehe `.env.example`).
+
+In der [Google Cloud Console](https://console.cloud.google.com/) sind nötig:
+
+1. **Drive-API aktivieren** (`APIs & Dienste → Bibliothek → Google Drive API`). Fehlt das, antwortet Drive mit `403 accessNotConfigured`.
+2. **Bereich** `https://www.googleapis.com/auth/drive.appdata` im OAuth-Zustimmungsbildschirm unter *Datenzugriff* hinzufügen **und speichern**.
+3. **Testnutzer** eintragen — im Testmodus kann sich sonst niemand anmelden.
+4. **Autorisierte JavaScript-Quellen** für jede Adresse, die die App ausliefert. Google erlaubt keine Platzhalter, jede Preview-URL braucht einen eigenen Eintrag:
+
+```
+https://kennyschilde04.github.io
+https://fitness-app-ferny.vercel.app
+https://fitness-app-git-master-ferny.vercel.app
+https://fitness-app-git-staging-ferny.vercel.app
+http://localhost:5173
+```
+
+Fehlt eine Adresse, bricht die Anmeldung mit `origin_mismatch` ab.
 
 ## Git-Workflow
 
@@ -74,4 +108,4 @@ Wichtig: **Settings → Deployment Protection** muss auf **"No Protection"** ste
 
 ## Demo-/Testdaten
 
-Branch `test/demo-data` enthält einen deterministischen Beispiel-Datensatz (30 Tage Trainingshistorie, rotierender Rhythmus, inkl. seltener übersprungener Sätze/Übungen zum Testen der entsprechenden Logik) — nur zum Anschauen, nicht für `staging`/`master` gedacht. Siehe `src/devSeed.ts` auf diesem Branch.
+Die Beispiel-Datensätze stecken in `src/storage.ts` und lassen sich unter **Einstellungen → Demo-Daten** laden: `demoData()` (8 Trainings) und `fullDemoData()` (60 Tage, deterministisch erzeugt, mit absichtlich ausgelassenen Tagen und Übungen zum Testen der Filterlogik). Vor dem Laden wird gefragt, und der vorherige Stand landet im automatischen Sicherungspunkt.
