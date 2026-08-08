@@ -38,7 +38,7 @@ export function DayCell({ date, unit, session, active = false, onClick, onLongPr
       onPointerLeave={longPress.onPointerLeave}
       onPointerCancel={longPress.onPointerCancel}
       onContextMenu={(event) => event.preventDefault()}
-      className={`relative flex h-36 w-29 flex-col overflow-hidden rounded-3xl border p-3 text-left shadow-lg shadow-black/15 transition-all duration-150 active:scale-95 sm:h-36 sm:w-29
+      className={`relative flex aspect-29/36 h-[var(--week-cell-height)] w-auto flex-col overflow-hidden rounded-3xl border p-3 text-left shadow-lg shadow-black/15 transition-all duration-150 active:scale-95
         ${colors ? `${colors.bg} ${colors.border}` : 'border-neutral-800 bg-neutral-900/80 hover:border-neutral-700 light:bg-white light:hover:border-neutral-300'}
         ${active ? 'border-lime-300 bg-neutral-900 shadow-[inset_0_0_0_2px_rgba(190,242,100,0.95)] light:border-lime-500 light:shadow-[inset_0_0_0_2px_rgba(132,204,22,0.9)]' : ''}
       `}

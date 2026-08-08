@@ -23,6 +23,9 @@
   --app-page-x: 1rem;
   --app-safe-top: max(2.25rem, calc(env(safe-area-inset-top) + 0.75rem));
   --app-safe-bottom: max(2rem, env(safe-area-inset-bottom));
+  --app-dock-height: 4rem;
+  --app-dock-space: calc(var(--app-dock-height) + 0.75rem + max(0.75rem, env(safe-area-inset-bottom)) + 0.5rem);
+  --week-cell-height: clamp(6.75rem, 16vh, 9rem);
 }
 
 html.light {
@@ -176,6 +179,78 @@ button {
   user-select: none;
 }
 
+/* Niedrige Viewports: Kacheln und Kopfbereich schrumpfen mit, damit der
+   Kalender ohne Scrollen zwischen Kopfbereich und Dock passt. */
+@media (max-height: 720px) {
+  :root {
+    --week-cell-height: clamp(5.25rem, 13.5vh, 7rem);
+  }
+
+  .app-calendar-header .app-eyebrow,
+  .app-calendar-header .app-calendar-subtitle {
+    display: none;
+  }
+
+  .app-calendar-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .app-focus-card {
+    padding: 1rem;
+  }
+
+  .app-focus-body {
+    margin-top: 1rem;
+  }
+
+  .app-focus-cta {
+    margin-top: 0.75rem;
+  }
+
+  .app-focus-stats {
+    margin-top: 0.75rem;
+  }
+
+  .app-focus-stat {
+    padding: 0.5rem 0.625rem;
+  }
+
+  .app-focus-stat p:first-child {
+    font-size: 1.25rem;
+  }
+
+  .app-focus-rows {
+    margin-top: 0.625rem;
+  }
+}
+
+/* Sehr niedrige Viewports: Kopfbereich wird einzeilig und die Fokus-Karte
+   enger, damit ihr Inhalt nicht auf null zusammenfällt. */
+@media (max-height: 640px) {
+  :root {
+    --week-cell-height: 4.25rem;
+  }
+
+  .app-calendar-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .app-focus-card {
+    padding: 0.75rem;
+  }
+}
+
+/* Die Übungsliste ist der flexible Bereich der Fokus-Karte. Reicht der Platz
+   nicht für alle Zeilen, blendet die letzte weich aus statt hart abzureißen. */
+.app-focus-list {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 0.75rem), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 0.75rem), transparent 100%);
+}
+
 .week-strip {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
@@ -222,6 +297,8 @@ button {
   padding-bottom: calc(var(--app-safe-bottom) + 5.75rem);
 }
 
+/* Der Kalender scrollt bewusst nicht: er muss immer komplett zwischen
+   Kopfbereich und Dock passen und schrumpft stattdessen in der Höhe. */
 .app-calendar-scroll {
   box-sizing: border-box;
   margin: 0 auto;
@@ -229,9 +306,9 @@ button {
   width: 100%;
   max-width: 64rem;
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   padding-inline: var(--app-page-x);
+  padding-bottom: var(--app-dock-space);
 }
 
 .app-card {
@@ -544,7 +621,7 @@ button {
 
 .app-dock {
   display: grid;
-  height: 4rem;
+  height: var(--app-dock-height);
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);

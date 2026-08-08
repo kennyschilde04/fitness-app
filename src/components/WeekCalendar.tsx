@@ -52,7 +52,7 @@ export function WeekCalendar({
   }
 
   return (
-    <div className="flex min-h-full w-full flex-col gap-4 pb-8">
+    <div className="flex h-full min-h-0 w-full flex-col gap-4">
       <div className="flex shrink-0 items-center justify-between">
         <button
           onClick={() => moveWeek(-1)}
@@ -102,9 +102,9 @@ export function WeekCalendar({
         </div>
       </div>
 
-      <section className={`shrink-0 overflow-hidden rounded-3xl border p-5 sm:p-6 ${focusedColors ? `${focusedColors.bg} ${focusedColors.border}` : 'border-neutral-800 bg-neutral-900/70 light:border-neutral-200 light:bg-white'}`}>
-        <div className="flex flex-col">
-          <div className="flex items-start justify-between gap-4">
+      <section className={`app-focus-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border p-5 sm:p-6 ${focusedColors ? `${focusedColors.bg} ${focusedColors.border}` : 'border-neutral-800 bg-neutral-900/70 light:border-neutral-200 light:bg-white'}`}>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase text-neutral-500 light:text-neutral-500">
                 {isSameDay(visibleFocusedDate, new Date()) ? 'Heute' : weekdayLabel(visibleFocusedDate)}
@@ -120,28 +120,28 @@ export function WeekCalendar({
           </div>
 
           {focusedSession && focusedUnit ? (
-            <div className="mt-5 flex flex-col">
-              <span className={`w-fit rounded-full px-3 py-1 text-sm font-bold ${focusedColors!.text}`}>
-                {focusedUnit.name}
-              </span>
-              <div className="mt-5 grid grid-cols-3 gap-2">
-                <div className="rounded-2xl border border-white/10 bg-neutral-950/45 p-3 light:border-neutral-200 light:bg-white/70">
-                  <p className="text-2xl font-black text-neutral-100 light:text-neutral-950">{focusedSession.exercises.length}</p>
-                  <p className="text-xs text-neutral-500">Übungen</p>
+            <div className="app-focus-body mt-5 flex min-h-0 flex-1 flex-col">
+              <div className="app-focus-list min-h-0 flex-1 overflow-hidden">
+                <span className={`block w-fit rounded-full px-3 py-1 text-sm font-bold ${focusedColors!.text}`}>
+                  {focusedUnit.name}
+                </span>
+                <div className="app-focus-stats mt-5 grid grid-cols-3 gap-2">
+                  <div className="app-focus-stat rounded-2xl border border-white/10 bg-neutral-950/45 p-3 light:border-neutral-200 light:bg-white/70">
+                    <p className="text-2xl font-black text-neutral-100 light:text-neutral-950">{focusedSession.exercises.length}</p>
+                    <p className="text-xs text-neutral-500">Übungen</p>
+                  </div>
+                  <div className="app-focus-stat rounded-2xl border border-white/10 bg-neutral-950/45 p-3 light:border-neutral-200 light:bg-white/70">
+                    <p className="text-2xl font-black text-neutral-100 light:text-neutral-950">{completedSets}</p>
+                    <p className="text-xs text-neutral-500">Sätze</p>
+                  </div>
+                  <div className="app-focus-stat rounded-2xl border border-white/10 bg-neutral-950/45 p-3 light:border-neutral-200 light:bg-white/70">
+                    <p className="text-2xl font-black text-neutral-100 light:text-neutral-950">
+                      {focusedSession.exercises.reduce((total, exercise) => total + exercise.sets.length, 0)}
+                    </p>
+                    <p className="text-xs text-neutral-500">Slots</p>
+                  </div>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-neutral-950/45 p-3 light:border-neutral-200 light:bg-white/70">
-                  <p className="text-2xl font-black text-neutral-100 light:text-neutral-950">{completedSets}</p>
-                  <p className="text-xs text-neutral-500">Sätze</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-neutral-950/45 p-3 light:border-neutral-200 light:bg-white/70">
-                  <p className="text-2xl font-black text-neutral-100 light:text-neutral-950">
-                    {focusedSession.exercises.reduce((total, exercise) => total + exercise.sets.length, 0)}
-                  </p>
-                  <p className="text-xs text-neutral-500">Slots</p>
-                </div>
-              </div>
-              <div className="mt-4">
-                <div className="flex flex-col gap-2">
+                <div className="app-focus-rows mt-4 flex flex-col gap-2">
                   {focusedSession.exercises.slice(0, 5).map((exercise) => (
                     <div key={exercise.exerciseId} className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-950/35 px-3 py-2 light:bg-white/70">
                       <span className="truncate text-sm font-semibold text-neutral-200 light:text-neutral-800">{exercise.name}</span>
@@ -152,14 +152,14 @@ export function WeekCalendar({
               </div>
               <button
                 onClick={() => onDayClick(visibleFocusedDate)}
-                className="mt-5 h-12 rounded-2xl bg-lime-300 px-4 text-sm font-black text-neutral-950 transition-transform active:scale-95 hover:bg-lime-200 light:bg-lime-500 light:hover:bg-lime-400"
+                className="app-focus-cta mt-5 h-12 shrink-0 rounded-2xl bg-lime-300 px-4 text-sm font-black text-neutral-950 transition-transform active:scale-95 hover:bg-lime-200 light:bg-lime-500 light:hover:bg-lime-400"
               >
                 Training öffnen
               </button>
             </div>
           ) : (
-            <div className="mt-7 flex flex-col">
-              <div>
+            <div className="app-focus-body mt-7 flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 overflow-hidden">
                 <p className="text-xl font-bold text-neutral-100 light:text-neutral-950">Noch kein Training geplant</p>
                 <p className="mt-2 max-w-sm text-sm leading-6 text-neutral-500 light:text-neutral-600">
                   Lege für diesen Tag eine Einheit an und baue dir Stück für Stück deinen Trainingsrhythmus auf.
@@ -167,7 +167,7 @@ export function WeekCalendar({
               </div>
               <button
                 onClick={() => onDayClick(visibleFocusedDate)}
-                className="mt-7 h-12 rounded-2xl border border-lime-300/70 px-4 text-sm font-black text-lime-200 transition-transform active:scale-95 hover:bg-lime-300/10 light:border-lime-500 light:text-lime-700 light:hover:bg-lime-50"
+                className="app-focus-cta mt-5 h-12 shrink-0 rounded-2xl border border-lime-300/70 px-4 text-sm font-black text-lime-200 transition-transform active:scale-95 hover:bg-lime-300/10 light:border-lime-500 light:text-lime-700 light:hover:bg-lime-50"
               >
                 Training starten
               </button>

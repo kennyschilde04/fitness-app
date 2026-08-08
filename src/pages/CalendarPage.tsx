@@ -108,13 +108,13 @@ export function CalendarPage() {
   return (
     <div className="app-screen">
       <main className={`app-calendar-scroll flex flex-col ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
-        <div className="mb-4 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="app-calendar-header mb-4 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="app-eyebrow">Trainings-Cockpit</p>
             <h2 className="mt-1 text-3xl font-black leading-none sm:text-4xl">
               Dein Rhythmus
             </h2>
-            <p className="app-muted mt-2 text-sm">
+            <p className="app-calendar-subtitle app-muted mt-2 text-sm">
               {totalSetsThisWeek > 0 ? `${totalSetsThisWeek} erfasste Sätze diese Woche` : 'Bereit für die erste Einheit der Woche'}
             </p>
           </div>
@@ -143,7 +143,7 @@ export function CalendarPage() {
           </div>
         </div>
 
-        <div className={`min-h-0 flex-1 ${viewMode === 'week' ? 'pb-[calc(var(--app-safe-bottom)+8rem)]' : 'pb-0'}`}>
+        <div className="min-h-0 flex-1">
           {viewMode === 'week' ? (
             <WeekCalendar
               weekStart={weekStart}
