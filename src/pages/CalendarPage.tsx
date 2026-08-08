@@ -6,6 +6,7 @@ import { MonthCalendar } from '../components/MonthCalendar';
 import { SessionModal } from '../components/SessionModal';
 import { WeekCalendar } from '../components/WeekCalendar';
 import { useAppData } from '../state/useAppData';
+import { useKontoAnmeldung } from '../state/useKontoAnmeldung';
 import { formatDayMonth, fromISODate, getMonthStart, getWeekDays, getWeekStart, toISODate } from '../utils/date';
 
 type ViewMode = 'week' | 'month';
@@ -54,7 +55,17 @@ export function CalendarPage() {
     setExerciseOrder,
     getPreviousSessions,
     zustand,
+    wechsleKonto,
   } = useAppData();
+
+  const { anmelden, laeuft: anmeldungLaeuft } = useKontoAnmeldung(wechsleKonto);
+  const [anmeldeFehler, setAnmeldeFehler] = useState('');
+
+  async function kontoVerbinden() {
+    setAnmeldeFehler('');
+    const ergebnis = await anmelden();
+    if (!ergebnis.ok) setAnmeldeFehler(ergebnis.grund);
+  }
 
   const selectedSession = selectedDate ? getSessionForDate(toISODate(selectedDate)) : undefined;
 
@@ -175,10 +186,18 @@ export function CalendarPage() {
               Deine Trainings liegen in deinem Google Drive und werden erst nach dem Verbinden geladen.
             </p>
             <button
-              onClick={() => navigate('/settings')}
-              className="app-accent-bg mt-6 h-12 w-full rounded-2xl text-sm font-black"
+              onClick={() => void kontoVerbinden()}
+              disabled={anmeldungLaeuft}
+              className="app-accent-bg mt-6 h-12 w-full rounded-2xl text-sm font-black disabled:opacity-60"
             >
-              Konto verbinden
+              {anmeldungLaeuft ? 'Verbinde …' : 'Mit Google anmelden'}
+            </button>
+            {anmeldeFehler && <p className="mt-4 text-sm font-bold text-red-400">{anmeldeFehler}</p>}
+            <button
+              onClick={() => navigate('/settings')}
+              className="app-muted mt-4 w-full text-xs font-bold underline"
+            >
+              Oder Demo-Daten ansehen
             </button>
           </div>
         </div>

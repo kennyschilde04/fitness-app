@@ -1,15 +1,12 @@
 import { useRef, useState } from 'react';
 import { AppDock } from '../components/AppDock';
 import { useAppData } from '../state/useAppData';
+import { useKontoAnmeldung } from '../state/useKontoAnmeldung';
 import { type Theme, useTheme } from '../state/useTheme';
 import {
   gemerktesKonto,
-  herunterladen,
   istKonfiguriert,
-  merkeKonto,
-  merkeStand,
   trennen,
-  verbinden,
   warVerbunden,
 } from '../state/driveSync';
 import {
@@ -18,7 +15,6 @@ import {
   buildExport,
   deletePlanSlot,
   deleteRescue,
-  emptyData,
   exportFileName,
   listRescueEntries,
   parseImport,
@@ -98,7 +94,7 @@ export function SettingsPage() {
   const driveKonfiguriert = istKonfiguriert();
   const [driveVerbunden, setDriveVerbunden] = useState(() => warVerbunden());
   const [driveKonto, setDriveKonto] = useState(() => gemerktesKonto());
-  const [driveLaeuft, setDriveLaeuft] = useState(false);
+  const { anmelden, laeuft: driveLaeuft } = useKontoAnmeldung(wechsleKonto);
   const [language, setLanguageState] = useState<AppLanguage>(() => {
     const saved = localStorage.getItem(LANGUAGE_KEY);
     return APP_LANGUAGES.some((item) => item.id === saved) ? (saved as AppLanguage) : 'de';
@@ -217,38 +213,23 @@ export function SettingsPage() {
       showToast('Keine Google-Client-ID hinterlegt');
       return;
     }
-    setDriveLaeuft(true);
     try {
-      // Immer neu verbinden: nur so lässt sich im Google-Dialog ein anderes
-      // Konto wählen. Ohne das käme man aus dem angemeldeten Konto nicht heraus.
-      const vorherigesKonto = driveKonto;
-      const verbindung = await verbinden();
-      if (!verbindung.verbunden || !verbindung.konto) {
-        showToast('Anmeldung abgebrochen');
-        return;
+      const ergebnis = await anmelden();
+      if (!ergebnis.ok) {
+        if (ergebnis.grund === 'Anmeldung abgebrochen' || ergebnis.grund.startsWith('Keine Google')) {
+          showToast(ergebnis.grund);
+          return;
+        }
+        throw new Error(ergebnis.grund);
       }
-      const kontoName = verbindung.konto;
       setDriveVerbunden(true);
-      merkeKonto(kontoName);
-      setDriveKonto(kontoName);
-
-      const ausDrive = await herunterladen();
-
-      // Der Stand des Kontos ersetzt, was auf dem Gerät liegt — notfalls leer.
-      // Es wird nichts vom vorherigen Konto mitgenommen, und dessen Bestand
-      // wird von diesem Gerät entfernt. Seine Daten liegen in seinem Drive.
-      const neuerStand = ausDrive ? ausDrive.data : emptyData();
-      const vorheriges = vorherigesKonto;
-
-      wechsleKonto(kontoName, neuerStand, vorheriges);
-      merkeStand(neuerStand);
+      setDriveKonto(ergebnis.konto);
       refreshStorageStats((value) => value + 1);
-
-      if (!ausDrive) {
-        showToast(`${kontoName}: noch kein Plan, leer gestartet`);
-        return;
-      }
-      showToast(`${neuerStand.sessions.length} Trainings von ${kontoName}`);
+      showToast(
+        ergebnis.hatteDrive
+          ? `${ergebnis.sessions} Trainings von ${ergebnis.konto}`
+          : `${ergebnis.konto}: noch kein Plan, leer gestartet`,
+      );
     } catch (fehler) {
       // Offline oder Anmeldung abgelaufen: die lokale Spiegelung ist dann der
       // beste verfügbare Stand, statt den Nutzer mit einem Fehler stehenzulassen.
@@ -264,8 +245,6 @@ export function SettingsPage() {
         return;
       }
       showToast(meldung);
-    } finally {
-      setDriveLaeuft(false);
     }
   }
 
