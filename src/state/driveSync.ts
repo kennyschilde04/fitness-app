@@ -261,7 +261,12 @@ export async function stillAnmelden(): Promise<string | null> {
     // darf niemals ungefragt ein Anmeldefenster aufgehen.
     const token = await holeToken(false);
     if (!token) return null;
-    return await holeKonto();
+    // Mit Zeitgrenze: hängt der Abruf (kein Netz, Google nicht erreichbar),
+    // bliebe die App sonst im Prüfzustand stehen — leer und ohne Hinweis.
+    return await Promise.race([
+      holeKonto(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+    ]);
   } catch {
     return null;
   }

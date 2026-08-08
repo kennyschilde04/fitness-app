@@ -3,7 +3,6 @@ import {
   demoData,
   emptyData,
   fullDemoData,
-  gemerkterRaum,
   loadData,
   loescheRaum,
   saveData,
@@ -52,17 +51,9 @@ export function useAppData() {
     let abgebrochen = false;
 
     async function starten() {
-      const gemerkt = gemerkterRaum();
-
-      // Der Demo-Raum braucht kein Konto.
-      if (gemerkt?.art === 'demo') {
-        setzeRaum(gemerkt);
-        if (abgebrochen) return;
-        setData(loadData());
-        setZustand('demo');
-        return;
-      }
-
+      // Der Demo-Modus überlebt einen Neustart bewusst nicht: sonst bliebe die
+      // App ohne Konto dauerhaft in den Testdaten stehen und fragte nie wieder
+      // nach einer Anmeldung.
       const email = await stillAnmelden();
       if (abgebrochen) return;
 
