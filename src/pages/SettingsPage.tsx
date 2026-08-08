@@ -40,7 +40,7 @@ const REST_TIMER_ENABLED_KEY = 'gym-tracker-rest-timer-enabled';
 const REST_TIMER_SECONDS_KEY = 'gym-tracker-rest-timer-seconds';
 const REST_TIMER_OPTIONS = [60, 90, 120, 180];
 
-type SettingsView = 'overview' | 'appearance' | 'storage' | 'demo' | 'weight' | 'restTimer' | 'language';
+type SettingsView = 'overview' | 'appearance' | 'storage' | 'demo' | 'konto' | 'weight' | 'restTimer' | 'language';
 type WeightUnit = 'kg' | 'lbs';
 type AppLanguage = 'de' | 'en' | 'es' | 'fr' | 'it' | 'nl';
 
@@ -527,6 +527,15 @@ export function SettingsPage() {
                     </svg>
                   </span>
                 </button>
+                <button onClick={() => setView('konto')} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Eigener Plan</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      {driveVerbunden && driveKonto ? driveKonto : 'Mit Google verbinden'}
+                    </span>
+                  </span>
+                  <SettingsBadge>{driveVerbunden ? 'Konto' : 'Google'}</SettingsBadge>
+                </button>
                 <button onClick={() => setView('demo')} className="app-list-button">
                   <span>
                     <span className="block text-base font-black">Demo-Daten</span>
@@ -939,7 +948,7 @@ export function SettingsPage() {
               </p>
             </section>
           </>
-        ) : (
+        ) : view === 'demo' ? (
           <>
             <button
               onClick={() => setView('overview')}
@@ -1024,22 +1033,81 @@ export function SettingsPage() {
                   </span>
                   <SettingsBadge>Leeren</SettingsBadge>
                 </button>
+              </div>
+            </section>
+          </>
+        ) : view === 'konto' ? (
+          <>
+            <button
+              onClick={() => setView('overview')}
+              className="app-icon-button mb-8"
+              aria-label="Zurück zu Einstellungen"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+
+            <header>
+              <p className="app-eyebrow">Eigener Plan</p>
+              <h1 className="mt-1 text-4xl font-black leading-none">Dein Konto</h1>
+              <p className="app-muted mt-4 text-sm font-semibold">
+                Deine Trainings liegen im versteckten App-Ordner deines Google Drive. Jedes Konto hat seinen eigenen
+                Stand — beim Wechsel wird nichts übernommen.
+              </p>
+            </header>
+
+            <section className="app-card mt-8 p-5">
+              <p className="app-muted text-[11px] font-black uppercase">Verbunden als</p>
+              <p className="mt-2 text-lg font-black">
+                {driveVerbunden && driveKonto ? driveKonto : 'Kein Konto verbunden'}
+              </p>
+              <p className="app-muted mt-2 text-sm font-semibold">
+                {driveVerbunden
+                  ? `${sessions.length} Trainings auf diesem Gerät`
+                  : 'Ohne Konto bleibt die App leer.'}
+              </p>
+            </section>
+
+            <section className="mt-6">
+              <p className="mb-3 text-sm font-black">Aktionen</p>
+              <div className="grid gap-3">
                 <button onClick={() => void planAntippen()} disabled={driveLaeuft} className="app-list-button">
                   <span>
-                    <span className="block text-base font-black">Eigener Plan</span>
+                    <span className="block text-base font-black">
+                      {driveVerbunden ? 'Plan neu laden' : 'Mit Google anmelden'}
+                    </span>
                     <span className="app-muted mt-1 block text-xs font-semibold">
-                      {driveLaeuft
-                        ? 'Verbinde mit Google Drive …'
-                        : driveVerbunden
-                          ? `Aus Google Drive laden${driveKonto ? ` · ${driveKonto}` : ''}`
-                          : 'Einmalig mit Google verbinden'}
+                      {driveLaeuft ? 'Verbinde mit Google Drive …' : 'Holt den Stand aus Drive'}
                     </span>
                   </span>
                   <SettingsBadge>{driveVerbunden ? 'Laden' : 'Google'}</SettingsBadge>
                 </button>
+                <button onClick={() => void planAntippen()} disabled={driveLaeuft} className="app-list-button">
+                  <span>
+                    <span className="block text-base font-black">Konto wechseln</span>
+                    <span className="app-muted mt-1 block text-xs font-semibold">
+                      Anderes Google-Konto wählen; der Stand dieses Geräts wird ersetzt
+                    </span>
+                  </span>
+                  <SettingsBadge>Wechseln</SettingsBadge>
+                </button>
+                {driveVerbunden && (
+                  <button onClick={driveTrennen} className="app-list-button">
+                    <span>
+                      <span className="block text-base font-black">Google-Konto trennen</span>
+                      <span className="app-muted mt-1 block text-xs font-semibold">
+                        Kein Abgleich mehr mit Drive; deine Daten in Drive bleiben erhalten
+                      </span>
+                    </span>
+                    <SettingsBadge>Trennen</SettingsBadge>
+                  </button>
+                )}
               </div>
             </section>
           </>
+        ) : (
+          <></>
         )}
       </main>
 

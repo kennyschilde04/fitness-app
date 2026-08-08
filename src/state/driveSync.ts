@@ -103,42 +103,72 @@ function ladeGsi(): Promise<void> {
  * Holt ein Zugriffstoken. `stillschweigend` versucht es ohne Dialog — das
  * klappt, solange die Google-Sitzung im Browser noch steht.
  */
-async function holeToken(stillschweigend: boolean): Promise<string | null> {
+/**
+ * Der Token-Client wird nur einmal erzeugt, sein Callback ist aber fest
+ * verdrahtet. Deshalb liegt die Auflösung der laufenden Anfrage hier daneben
+ * und wird pro Aufruf neu gesetzt — sonst bedient der Callback ewig das
+ * Versprechen der allerersten Anmeldung, und jede weitere hängt.
+ */
+let laufendeAnfrage: { fertig: (token: string | null) => void; fehler: (e: Error) => void } | null = null;
+
+function baueClient(api: OAuth2Api): void {
+  if (tokenClient) return;
+  tokenClient = api.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: (response) => {
+      const anfrage = laufendeAnfrage;
+      laufendeAnfrage = null;
+      if (!anfrage) return;
+      if (response.error) {
+        anfrage.fehler(new Error(`Google-Anmeldung: ${response.error}`));
+        return;
+      }
+      if (!response.access_token) {
+        anfrage.fertig(null);
+        return;
+      }
+      accessToken = response.access_token;
+      tokenAblauf = Date.now() + (response.expires_in ?? 3600) * 1000 - 60_000;
+      localStorage.setItem(CONNECTED_KEY, 'true');
+      anfrage.fertig(accessToken);
+    },
+    error_callback: () => {
+      const anfrage = laufendeAnfrage;
+      laufendeAnfrage = null;
+      anfrage?.fehler(new Error('Anmeldung abgebrochen'));
+    },
+  });
+}
+
+/**
+ * `interaktiv: false` öffnet unter keinen Umständen ein Google-Fenster und
+ * nutzt nur ein bereits vorliegendes Token. Das ist wichtig, weil auch ein
+ * vermeintlich stiller Token-Abruf den Kontoauswahl-Dialog aufreißen kann —
+ * mitten im Navigieren oder direkt nach einem Abbruch.
+ */
+async function holeToken(interaktiv: boolean): Promise<string | null> {
   if (!istKonfiguriert()) throw new Error('Keine Google-Client-ID hinterlegt');
   if (accessToken && Date.now() < tokenAblauf) return accessToken;
+  if (!interaktiv) return null;
+  if (laufendeAnfrage) throw new Error('Anmeldung läuft bereits');
 
   await ladeGsi();
   const api = window.google?.accounts?.oauth2;
   if (!api) throw new Error('Google-Anmeldung nicht verfügbar');
+  baueClient(api);
 
   return new Promise((resolve, reject) => {
-    if (!tokenClient) {
-      tokenClient = api.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPE,
-        callback: (response) => {
-          if (response.error) {
-            reject(new Error(`Google-Anmeldung: ${response.error}`));
-            return;
-          }
-          if (!response.access_token) {
-            resolve(null);
-            return;
-          }
-          accessToken = response.access_token;
-          tokenAblauf = Date.now() + (response.expires_in ?? 3600) * 1000 - 60_000;
-          localStorage.setItem(CONNECTED_KEY, 'true');
-          resolve(accessToken);
-        },
-        error_callback: () => reject(new Error('Anmeldung abgebrochen')),
-      });
-    }
-    tokenClient.requestAccessToken({ prompt: stillschweigend ? '' : 'consent' });
+    laufendeAnfrage = { fertig: resolve, fehler: reject };
+    // select_account statt consent: Kontowechsel ohne jedes Mal die
+    // Berechtigungsabfrage erneut durchlaufen zu müssen.
+    tokenClient!.requestAccessToken({ prompt: 'select_account' });
   });
 }
 
 async function api(pfad: string, init: RequestInit = {}): Promise<Response> {
-  const token = await holeToken(true);
+  // Nicht interaktiv: ein Drive-Aufruf darf keinen Anmeldedialog auslösen.
+  const token = await holeToken(false);
   if (!token) throw new Error('Nicht angemeldet');
   const response = await fetch(pfad, {
     ...init,
@@ -227,7 +257,9 @@ export interface Verbindung {
 export async function stillAnmelden(): Promise<string | null> {
   if (!istKonfiguriert() || !warVerbunden()) return null;
   try {
-    const token = await holeToken(true);
+    // Ausdrücklich nicht interaktiv: beim Start und bei jedem Seitenwechsel
+    // darf niemals ungefragt ein Anmeldefenster aufgehen.
+    const token = await holeToken(false);
     if (!token) return null;
     return await holeKonto();
   } catch {
@@ -240,7 +272,8 @@ export async function verbinden(): Promise<Verbindung> {
   // gemerkte Datei-ID des vorigen Kontos wäre dann falsch.
   localStorage.removeItem(FILE_ID_KEY);
   zuletztHochgeladen = null;
-  const token = await holeToken(false);
+  // Der einzige Ort, an dem ein Google-Fenster aufgehen darf.
+  const token = await holeToken(true);
   if (!token) return { verbunden: false, konto: null, kontoGewechselt: false };
 
   const konto = await holeKonto();

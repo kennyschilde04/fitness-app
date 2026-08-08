@@ -64,6 +64,8 @@ export function CalendarPage() {
   async function kontoVerbinden() {
     setAnmeldeFehler('');
     const ergebnis = await anmelden();
+    // Bei Erfolg setzt wechsleKonto den Zustand auf 'bereit', wodurch der
+    // Hinweis von selbst verschwindet — hier ist nichts weiter zu tun.
     if (!ergebnis.ok) setAnmeldeFehler(ergebnis.grund);
   }
 
