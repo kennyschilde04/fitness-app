@@ -132,10 +132,14 @@ html.mono {
 html,
 body,
 #root {
+  /* height: 100% löst auf Mobilgeräten gegen den großen Viewport auf (URL-Leiste
+     eingeklappt) und macht das Dokument höher als der sichtbare Bereich. Die
+     gemessene Höhe verhindert das; 100% bleibt Fallback ohne Skript. */
   height: 100%;
-  min-height: 100%;
+  height: var(--app-viewport-height, 100%);
+  min-height: 0;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
   background: var(--app-bg);
 }
 
@@ -298,8 +302,11 @@ button {
 
 .app-screen {
   display: flex;
-  min-height: 100dvh;
+  /* 100dvh nur als Fallback, wenn das Skript in index.html nicht lief.
+     --app-viewport-height ist der gemessene sichtbare Bereich. */
   height: 100dvh;
+  height: var(--app-viewport-height, 100dvh);
+  min-height: 0;
   width: 100%;
   flex-direction: column;
   overflow: hidden;

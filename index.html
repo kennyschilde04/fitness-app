@@ -26,6 +26,24 @@
           document.documentElement.classList.add('dark');
         }
       })();
+
+      // Sichtbare Viewport-Höhe selbst messen und als --app-viewport-height
+      // bereitstellen. Mobile Browser legen 100dvh/100%/100vh unterschiedlich
+      // aus, solange die URL-Leiste ein- oder ausgeklappt wird — dann wird die
+      // App höher als der sichtbare Bereich und der Inhalt rutscht unter das
+      // Dock. visualViewport.height ist der tatsächlich sichtbare Bereich.
+      (function () {
+        function apply() {
+          var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+          document.documentElement.style.setProperty('--app-viewport-height', h + 'px');
+        }
+        apply();
+        window.addEventListener('resize', apply);
+        window.addEventListener('orientationchange', apply);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', apply);
+        }
+      })();
     </script>
   </head>
   <body>

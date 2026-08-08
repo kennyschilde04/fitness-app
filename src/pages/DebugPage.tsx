@@ -50,6 +50,10 @@ function collect(): Row[] {
     { label: 'doc.clientHeight', value: String(doc.clientHeight) },
     { label: 'doc.scrollHeight', value: String(doc.scrollHeight) },
     { label: 'scrollY', value: String(Math.round(window.scrollY)) },
+    {
+      label: '--app-viewport-height',
+      value: getComputedStyle(doc).getPropertyValue('--app-viewport-height').trim() || 'NICHT GESETZT',
+    },
     { label: '100dvh ergibt', value: `${dvhPx.toFixed(0)}px` },
     { label: 'fill-available ergibt', value: `${fillPx.toFixed(0)}px` },
     { label: 'dvh unterstützt', value: String(CSS.supports('height', '100dvh')) },
