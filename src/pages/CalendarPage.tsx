@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AppDock } from '../components/AppDock';
 import { DayContextMenu } from '../components/DayContextMenu';
-import { Header } from '../components/Header';
 import { MonthCalendar } from '../components/MonthCalendar';
 import { SessionModal } from '../components/SessionModal';
 import { WeekCalendar } from '../components/WeekCalendar';
 import { useAppData } from '../state/useAppData';
-import { fromISODate, getMonthStart, getWeekStart, toISODate } from '../utils/date';
+import { formatDayMonth, fromISODate, getMonthStart, getWeekDays, getWeekStart, toISODate } from '../utils/date';
 
 type ViewMode = 'week' | 'month';
 
@@ -41,6 +41,7 @@ export function CalendarPage() {
     units,
     getSessionForDate,
     createUnit,
+    updateUnitColor,
     createSession,
     deleteUnit,
     deleteSession,
@@ -50,6 +51,7 @@ export function CalendarPage() {
     updateExerciseNote,
     addExerciseToSession,
     removeExerciseFromUnit,
+    setExerciseOrder,
     getPreviousSessions,
   } = useAppData();
 
@@ -68,9 +70,9 @@ export function CalendarPage() {
     createSession(toISODate(selectedDate), unitId);
   }
 
-  function handleCreateUnit(name: string) {
+  function handleCreateUnit(name: string, colorIndex?: number) {
     if (!selectedDate) return;
-    const unitId = createUnit(name);
+    const unitId = createUnit(name, colorIndex);
     if (unitId) createSession(toISODate(selectedDate), unitId);
   }
 
@@ -85,18 +87,44 @@ export function CalendarPage() {
     if (session) deleteSession(session.id);
   }
 
-  return (
-    <div className="flex h-[100svh] flex-col overflow-hidden bg-neutral-950 px-4 pt-[max(1.25rem,env(safe-area-inset-top))] light:bg-neutral-50 sm:px-8">
-      <Header />
+  function goToToday() {
+    const today = new Date();
+    setWeekStart(getWeekStart(today));
+    setMonthStart(getMonthStart(today));
+  }
 
-      <main className={`mx-auto flex w-full min-h-0 flex-1 flex-col ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
-        <div className="mb-3 flex shrink-0 justify-center">
-          <div className="inline-flex rounded-lg border border-neutral-800 bg-neutral-900 p-1 light:border-neutral-200 light:bg-neutral-100">
+  const totalSetsThisWeek = getWeekDays(weekStart).reduce((total, date) => {
+    const session = getSessionForDate(toISODate(date));
+    if (!session) return total;
+    return (
+      total +
+      session.exercises.reduce(
+        (sets, exercise) => sets + exercise.sets.filter((set) => set.weight !== null || set.reps !== null).length,
+        0,
+      )
+    );
+  }, 0);
+
+  return (
+    <div className="app-screen">
+      <main className={`app-calendar-scroll flex flex-col ${viewMode === 'month' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+        <div className="app-calendar-header mb-4 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="app-eyebrow">Trainings-Cockpit</p>
+            <h2 className="mt-1 text-3xl font-black leading-none sm:text-4xl">
+              Dein Rhythmus
+            </h2>
+            <p className="app-calendar-subtitle app-muted mt-2 text-sm">
+              {totalSetsThisWeek > 0 ? `${totalSetsThisWeek} erfasste Sätze diese Woche` : 'Bereit für die erste Einheit der Woche'}
+            </p>
+          </div>
+
+          <div className="inline-flex w-fit rounded-2xl border border-neutral-800 bg-neutral-950/70 p-1 shadow-2xl shadow-black/20 light:border-neutral-200 light:bg-white/80 light:shadow-neutral-200/60">
             <button
               onClick={() => setViewMode('week')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95 ${
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition-all duration-150 active:scale-95 ${
                 viewMode === 'week'
-                  ? 'bg-neutral-700 text-neutral-100 light:bg-white light:text-neutral-900'
+                  ? 'bg-lime-300 text-neutral-950 light:bg-lime-500 light:text-white'
                   : 'text-neutral-400 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700'
               }`}
             >
@@ -104,9 +132,9 @@ export function CalendarPage() {
             </button>
             <button
               onClick={() => setViewMode('month')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95 ${
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition-all duration-150 active:scale-95 ${
                 viewMode === 'month'
-                  ? 'bg-neutral-700 text-neutral-100 light:bg-white light:text-neutral-900'
+                  ? 'bg-lime-300 text-neutral-950 light:bg-lime-500 light:text-white'
                   : 'text-neutral-400 hover:text-neutral-200 light:text-neutral-500 light:hover:text-neutral-700'
               }`}
             >
@@ -115,7 +143,7 @@ export function CalendarPage() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 pb-3">
+        <div className="min-h-0 flex-1">
           {viewMode === 'week' ? (
             <WeekCalendar
               weekStart={weekStart}
@@ -138,14 +166,13 @@ export function CalendarPage() {
         </div>
       </main>
 
-      <footer className="mx-auto w-full shrink-0 max-w-5xl border-t border-neutral-900 py-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-center light:border-neutral-200">
-        <p className="text-xs text-neutral-700 light:text-neutral-400">Gym Tracker · lokal auf deinem Gerät gespeichert</p>
-      </footer>
+      <AppDock active="today" onTodayClick={goToToday} />
 
       {contextMenu && (
         <DayContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
+          title={formatDayMonth(contextMenu.date)}
           onDelete={handleDeleteFromContextMenu}
           onClose={() => setContextMenu(null)}
         />
@@ -159,6 +186,7 @@ export function CalendarPage() {
           onClose={closeDay}
           onSelectUnit={handleSelectUnit}
           onCreateUnit={handleCreateUnit}
+          onUpdateUnitColor={updateUnitColor}
           onDeleteUnit={deleteUnit}
           onDeleteSession={() => selectedSession && deleteSession(selectedSession.id)}
           onSetChange={(exerciseId, setIndex, patch) =>
@@ -173,10 +201,12 @@ export function CalendarPage() {
           onRemoveExercise={(exerciseId) =>
             selectedSession && removeExerciseFromUnit(selectedSession.id, exerciseId)
           }
+          onReorderExercises={(orderedExerciseIds) =>
+            selectedSession && setExerciseOrder(selectedSession.id, orderedExerciseIds)
+          }
           getPreviousSessions={(unitId, exerciseId) =>
             selectedSession ? getPreviousSessions(unitId, exerciseId, selectedSession.id) : []
           }
-          onViewHistory={(unitId) => navigate(`/history/${unitId}`)}
         />
       )}
     </div>

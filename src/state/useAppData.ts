@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { loadData, saveData } from '../storage';
+import { demoData, emptyData, fullDemoData, loadData, saveData } from '../storage';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
@@ -38,16 +38,38 @@ export function useAppData() {
     [data.sessions],
   );
 
-  const createUnit = useCallback((name: string): string => {
+  const createUnit = useCallback((name: string, colorIndex?: number): string => {
     const trimmed = name.trim();
     if (!trimmed) return '';
     const id = newId();
     setData((prev) => {
       const maxOrder = prev.units.reduce((max, u) => Math.max(max, u.order), -1);
-      const unit: UnitDef = { id, name: trimmed, colorIndex: prev.units.length, order: maxOrder + 1 };
+      const unit: UnitDef = { id, name: trimmed, colorIndex: colorIndex ?? prev.units.length, order: maxOrder + 1 };
       return { ...prev, units: [...prev.units, unit] };
     });
     return id;
+  }, []);
+
+  const updateUnitColor = useCallback((unitId: string, colorIndex: number) => {
+    setData((prev) => ({
+      ...prev,
+      units: prev.units.map((unit) => (unit.id === unitId ? { ...unit, colorIndex } : unit)),
+    }));
+  }, []);
+
+  const updateUnit = useCallback((unitId: string, patch: Partial<Pick<UnitDef, 'name' | 'colorIndex'>>) => {
+    setData((prev) => ({
+      ...prev,
+      units: prev.units.map((unit) => {
+        if (unit.id !== unitId) return unit;
+        const name = patch.name?.trim();
+        return {
+          ...unit,
+          ...(name ? { name } : {}),
+          ...(patch.colorIndex !== undefined ? { colorIndex: patch.colorIndex } : {}),
+        };
+      }),
+    }));
   }, []);
 
   const createSession = useCallback((date: string, unitId: string) => {
@@ -198,6 +220,38 @@ export function useAppData() {
     });
   }, []);
 
+  const addExerciseToUnit = useCallback((unitId: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setData((prev) => {
+      const unitExercises = prev.exercises.filter((e) => e.unitId === unitId);
+      const maxOrder = unitExercises.reduce((max, e) => Math.max(max, e.order), -1);
+      const newExercise: ExerciseDef = {
+        id: newId(),
+        unitId,
+        name: trimmed,
+        order: maxOrder + 1,
+      };
+
+      return {
+        ...prev,
+        exercises: [...prev.exercises, newExercise],
+      };
+    });
+  }, []);
+
+  const removeExerciseFromUnitPlan = useCallback((unitId: string, exerciseId: string) => {
+    setData((prev) => ({
+      ...prev,
+      exercises: prev.exercises.filter((exercise) => !(exercise.unitId === unitId && exercise.id === exerciseId)),
+      sessions: prev.sessions.map((session) =>
+        session.unitId === unitId
+          ? { ...session, exercises: session.exercises.filter((exercise) => exercise.exerciseId !== exerciseId) }
+          : session,
+      ),
+    }));
+  }, []);
+
   const removeExerciseFromUnit = useCallback((sessionId: string, exerciseId: string) => {
     setData((prev) => {
       const session = prev.sessions.find((s) => s.id === sessionId);
@@ -214,6 +268,20 @@ export function useAppData() {
     });
   }, []);
 
+  const setExerciseOrder = useCallback((sessionId: string, orderedExerciseIds: string[]) => {
+    setData((prev) => ({
+      ...prev,
+      sessions: prev.sessions.map((session) => {
+        if (session.id !== sessionId) return session;
+        const byId = new Map(session.exercises.map((exercise) => [exercise.exerciseId, exercise]));
+        const exercises = orderedExerciseIds
+          .map((id) => byId.get(id))
+          .filter((exercise): exercise is SessionExercise => exercise !== undefined);
+        return { ...session, exercises };
+      }),
+    }));
+  }, []);
+
   const deleteUnit = useCallback((unitId: string) => {
     setData((prev) => ({
       units: prev.units.filter((u) => u.id !== unitId),
@@ -227,6 +295,24 @@ export function useAppData() {
       ...prev,
       sessions: prev.sessions.filter((s) => s.id !== sessionId),
     }));
+  }, []);
+
+  const resetToDemoData = useCallback(() => {
+    const next = demoData();
+    saveData(next);
+    setData(next);
+  }, []);
+
+  const resetToFullDemoData = useCallback(() => {
+    const next = fullDemoData();
+    saveData(next);
+    setData(next);
+  }, []);
+
+  const resetToEmptyData = useCallback(() => {
+    const next = emptyData();
+    saveData(next);
+    setData(next);
   }, []);
 
   const getRecentSessions = useCallback(
@@ -290,6 +376,8 @@ export function useAppData() {
     sessions: data.sessions,
     getSessionForDate,
     createUnit,
+    updateUnit,
+    updateUnitColor,
     createSession,
     addSet,
     removeSet,
@@ -298,9 +386,15 @@ export function useAppData() {
     updateSet,
     updateExerciseNote,
     addExerciseToSession,
+    addExerciseToUnit,
     removeExerciseFromUnit,
+    removeExerciseFromUnitPlan,
+    setExerciseOrder,
     getPreviousSessions,
     getRecentSessions,
     getUnitExerciseHistory,
+    resetToDemoData,
+    resetToFullDemoData,
+    resetToEmptyData,
   };
 }
