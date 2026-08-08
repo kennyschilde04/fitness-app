@@ -208,6 +208,95 @@ export function deleteRescue(key: string): void {
   localStorage.removeItem(key);
 }
 
+/**
+ * Benannter Platz für den eigenen Trainingsplan und ein automatischer
+ * Sicherungspunkt, der vor jedem überschreibenden Vorgang angelegt wird.
+ * Beide liegen getrennt vom Hauptspeicher, überstehen also das Laden von
+ * Demo-Daten.
+ */
+const PLAN_SLOT_KEY = 'gym-tracker-slot-plan';
+const AUTO_BACKUP_KEY = 'gym-tracker-auto-backup';
+
+export interface SlotInfo {
+  gespeichertAm: string;
+  sessions: number;
+  units: number;
+  bytes: number;
+}
+
+interface SlotPayload {
+  gespeichertAm: string;
+  data: AppData;
+}
+
+function writeSlot(key: string, data: AppData): void {
+  const payload: SlotPayload = { gespeichertAm: new Date().toISOString(), data };
+  try {
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch {
+    // Speicher voll — der Slot bleibt dann auf dem alten Stand.
+  }
+}
+
+function readSlotInfo(key: string): SlotInfo | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    const payload = JSON.parse(raw) as SlotPayload;
+    const data = parseImport(JSON.stringify(payload.data));
+    if (!data) return null;
+    return {
+      gespeichertAm: payload.gespeichertAm,
+      sessions: data.sessions.length,
+      units: data.units.length,
+      bytes: new Blob([raw]).size,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readSlotData(key: string): AppData | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    const payload = JSON.parse(raw) as SlotPayload;
+    return parseImport(JSON.stringify(payload.data));
+  } catch {
+    return null;
+  }
+}
+
+export function savePlanSlot(data: AppData): void {
+  writeSlot(PLAN_SLOT_KEY, data);
+}
+
+export function planSlotInfo(): SlotInfo | null {
+  return readSlotInfo(PLAN_SLOT_KEY);
+}
+
+export function readPlanSlot(): AppData | null {
+  return readSlotData(PLAN_SLOT_KEY);
+}
+
+export function deletePlanSlot(): void {
+  localStorage.removeItem(PLAN_SLOT_KEY);
+}
+
+/** Vor jedem überschreibenden Vorgang aufrufen. Leere Stände sind es nicht wert. */
+export function writeAutoBackup(data: AppData): void {
+  if (data.sessions.length === 0) return;
+  writeSlot(AUTO_BACKUP_KEY, data);
+}
+
+export function autoBackupInfo(): SlotInfo | null {
+  return readSlotInfo(AUTO_BACKUP_KEY);
+}
+
+export function readAutoBackup(): AppData | null {
+  return readSlotData(AUTO_BACKUP_KEY);
+}
+
 export function saveData(data: AppData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }

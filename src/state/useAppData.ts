@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { demoData, emptyData, fullDemoData, loadData, saveData } from '../storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { demoData, emptyData, fullDemoData, loadData, saveData, writeAutoBackup } from '../storage';
 import type { AppData, ExerciseDef, Session, SessionExercise, SetEntry, UnitDef } from '../types';
 import { DEFAULT_SETS, MAX_SETS, MIN_SETS } from '../types';
 
@@ -32,6 +32,18 @@ export function useAppData() {
   useEffect(() => {
     saveData(data);
   }, [data]);
+
+  // Die resetTo*-Funktionen sind bewusst ohne Abhängigkeiten. Über die Ref
+  // kommen sie trotzdem an den aktuellen Stand, um ihn vor dem Überschreiben
+  // zu sichern.
+  const currentData = useRef(data);
+  currentData.current = data;
+
+  const replaceAll = useCallback((next: AppData) => {
+    writeAutoBackup(currentData.current);
+    saveData(next);
+    setData(next);
+  }, []);
 
   const getSessionForDate = useCallback(
     (date: string): Session | undefined => data.sessions.find((s) => s.date === date),
@@ -297,28 +309,13 @@ export function useAppData() {
     }));
   }, []);
 
-  const resetToDemoData = useCallback(() => {
-    const next = demoData();
-    saveData(next);
-    setData(next);
-  }, []);
+  const resetToDemoData = useCallback(() => replaceAll(demoData()), [replaceAll]);
 
-  const resetToFullDemoData = useCallback(() => {
-    const next = fullDemoData();
-    saveData(next);
-    setData(next);
-  }, []);
+  const resetToFullDemoData = useCallback(() => replaceAll(fullDemoData()), [replaceAll]);
 
-  const resetToEmptyData = useCallback(() => {
-    const next = emptyData();
-    saveData(next);
-    setData(next);
-  }, []);
+  const resetToEmptyData = useCallback(() => replaceAll(emptyData()), [replaceAll]);
 
-  const replaceData = useCallback((next: AppData) => {
-    saveData(next);
-    setData(next);
-  }, []);
+  const replaceData = useCallback((next: AppData) => replaceAll(next), [replaceAll]);
 
   const getRecentSessions = useCallback(
     (unitId: string, limit = 10): Session[] =>

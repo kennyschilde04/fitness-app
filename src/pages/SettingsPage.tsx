@@ -4,12 +4,18 @@ import { useAppData } from '../state/useAppData';
 import { type Theme, useTheme } from '../state/useTheme';
 import {
   STORAGE_KEY,
+  autoBackupInfo,
   buildExport,
+  deletePlanSlot,
   deleteRescue,
   exportFileName,
   listRescueEntries,
   parseImport,
+  planSlotInfo,
+  readAutoBackup,
+  readPlanSlot,
   readRescueRaw,
+  savePlanSlot,
 } from '../storage';
 
 const APP_THEMES: { id: Theme; name: string; subtitle: string; colors: string[] }[] = [
@@ -96,6 +102,8 @@ export function SettingsPage() {
   ]).size;
   const totalBytes = appDataBytes + cacheBytes;
   const rescueEntries = listRescueEntries();
+  const planSlot = planSlotInfo();
+  const autoBackup = autoBackupInfo();
   const activeLanguage = APP_LANGUAGES.find((item) => item.id === language) ?? APP_LANGUAGES[0];
 
   function showToast(message: string) {
@@ -173,6 +181,62 @@ export function SettingsPage() {
         deleteRescue(key);
         refreshStorageStats((value) => value + 1);
         showToast('Rettung verworfen');
+      },
+    });
+  }
+
+  function savePlan() {
+    savePlanSlot({ units, exercises, sessions });
+    refreshStorageStats((value) => value + 1);
+    showToast(`Kennys Plan gesichert: ${sessions.length} Trainings`);
+  }
+
+  function loadPlan() {
+    const geladen = readPlanSlot();
+    if (!geladen) {
+      showToast('Kein gesicherter Plan vorhanden');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Kennys Plan laden?',
+      text: `Ersetzt die aktuellen ${sessions.length} Trainings durch ${geladen.sessions.length} aus deinem Plan.`,
+      bestaetigen: 'Laden',
+      ausfuehren: () => {
+        replaceData(geladen);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${geladen.sessions.length} Trainings geladen`);
+      },
+    });
+  }
+
+  function restoreAutoBackup() {
+    const geladen = readAutoBackup();
+    if (!geladen) {
+      showToast('Kein Sicherungspunkt vorhanden');
+      return;
+    }
+    mitRueckfrage({
+      titel: 'Stand vor dem Überschreiben zurückholen?',
+      text: `Ersetzt die aktuellen ${sessions.length} Trainings durch ${geladen.sessions.length} aus dem Sicherungspunkt.`,
+      bestaetigen: 'Zurückholen',
+      ausfuehren: () => {
+        replaceData(geladen);
+        refreshStorageStats((value) => value + 1);
+        showToast(`${geladen.sessions.length} Trainings zurückgeholt`);
+      },
+    });
+  }
+
+  function forgetPlan() {
+    mitRueckfrage({
+      titel: 'Kennys Plan löschen?',
+      text: 'Der gesicherte Plan wird entfernt. Deine aktuellen Daten bleiben unberührt.',
+      bestaetigen: 'Löschen',
+      immerFragen: true,
+      ausfuehren: () => {
+        deletePlanSlot();
+        refreshStorageStats((value) => value + 1);
+        showToast('Kennys Plan gelöscht');
       },
     });
   }
@@ -788,6 +852,48 @@ export function SettingsPage() {
             </header>
 
             <section className="app-card mt-8 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-lg font-black">Kennys Plan</p>
+                  <p className="app-muted mt-2 text-sm font-semibold">
+                    {planSlot
+                      ? `${planSlot.sessions} Trainings, ${planSlot.units} Einheiten · gesichert am ${new Date(planSlot.gespeichertAm).toLocaleString('de-DE')}`
+                      : 'Noch nichts gesichert. Sichere deinen echten Stand, bevor du Demo-Daten testest.'}
+                  </p>
+                </div>
+                <SettingsBadge>Plan</SettingsBadge>
+              </div>
+              <div className="mt-5 grid gap-2">
+                <button onClick={savePlan} className="app-primary-button">
+                  Aktuellen Stand sichern ({sessions.length})
+                </button>
+                {planSlot && (
+                  <>
+                    <button onClick={loadPlan} className="app-secondary-button">
+                      Kennys Plan laden ({planSlot.sessions})
+                    </button>
+                    <button onClick={forgetPlan} className="app-danger-button">
+                      Plan löschen
+                    </button>
+                  </>
+                )}
+              </div>
+            </section>
+
+            {autoBackup && (
+              <section className="app-card mt-4 p-5">
+                <p className="text-base font-black">Letzter Stand vor dem Überschreiben</p>
+                <p className="app-muted mt-2 text-sm font-semibold">
+                  {autoBackup.sessions} Trainings · automatisch gesichert am{' '}
+                  {new Date(autoBackup.gespeichertAm).toLocaleString('de-DE')}
+                </p>
+                <button onClick={restoreAutoBackup} className="app-secondary-button mt-4 w-full">
+                  Zurückholen
+                </button>
+              </section>
+            )}
+
+            <section className="app-card mt-4 p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-lg font-black">Demo-Profil</p>
